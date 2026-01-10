@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri Seleksi Foto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        body { padding-bottom: 100px; -webkit-tap-highlight-color: transparent; }
+        /* Toast Animation */
+        @keyframes slideUp { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+        .toast-enter { animation: slideUp 0.3s forwards; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <!-- Header -->
+    <nav class="bg-white shadow sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="overflow-hidden">
+                <h1 class="font-bold text-gray-900 truncate" id="title">Memuat...</h1>
+                <p class="text-[10px] text-gray-500">Pilih foto favorit Anda</p>
+            </div>
+            <div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 whitespace-nowrap ml-2">
+                Sisa: <span id="quotaLeft">0</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="max-w-6xl mx-auto px-2 py-4 min-h-screen">
+        <div id="loader" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="mt-2 text-xs text-gray-400">Syncing Drive...</p>
+        </div>
+
+        <div id="error" class="hidden text-center py-20 px-6">
+            <div class="text-red-400 text-4xl mb-2"><i class="fas fa-unlink"></i></div>
+            <p id="errMsg" class="text-sm text-gray-600">Error.</p>
+        </div>
+
+        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden"></div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white border-t z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+        <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2">
+            <!-- Thumbs -->
+            <div class="flex-1 overflow-hidden">
+                <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 uppercase font-bold">
+                    <span>Terpilih: <span id="count" class="text-blue-600">0</span> / <span id="max">0</span></span>
+                    <span id="warn" class="text-red-500 hidden">Penuh!</span>
+                </div>
+                <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1"></div>
+            </div>
+            <!-- Buttons -->
+            <div class="flex gap-2 border-t md:border-t-0 pt-2 md:pt-0">
+                <button onclick="reset()" class="bg-gray-100 text-gray-600 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
+                <button onclick="processOrder()" id="btnSend" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-paper-plane"></i> Kirim Pilihan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay for Sending -->
+    <div id="sendingOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-[60] hidden flex flex-col items-center justify-center text-white">
+        <div class="animate-spin rounded-full h-10 w-10 border-4 border-white border-t-transparent mb-4"></div>
+        <p>Sedang menyimpan ke Drive...</p>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded shadow-lg text-xs hidden z-[70]"></div>
+
+    <script>
+        // API KEY GOOGLE DRIVE (READ ONLY)
+        const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; 
+
+        let state = { id: '', name: '', limit: 0, script: '', photos: [], selected: new Set() };
+
+        window.onload = async () => {
+            const p = new URLSearchParams(window.location.search);
+            state.name = p.get('p');
+            state.limit = parseInt(p.get('q'));
+            state.id = p.get('f');
+            state.script = p.get('s'); // Link Script Backend
+
+            if(!state.name || !state.id) return fail("Link rusak.");
+            
+            document.getElementById('title').innerText = state.name;
+            updateUI();
+            await loadDrive();
+        };
+
+        async function loadDrive() {
+            try {
+                const q = `'${state.id}' in parents and mimeType contains 'image/' and trashed = false`;
+                const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,thumbnailLink,webContentLink)&key=${API_KEY}&pageSize=100`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if(data.error) throw new Error(data.error.message);
+                
+                state.photos = data.files.map(f => ({
+                    id: f.id, 
+                    name: f.name,
+                    url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s500') : f.webContentLink
+                }));
+
+                renderGrid();
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('grid').classList.remove('hidden');
+            } catch (e) { fail(e.message); }
+        }
+
+        function renderGrid() {
+            const g = document.getElementById('grid');
+            g.innerHTML = '';
+            state.photos.forEach(p => {
+                const isSel = state.selected.has(p.id);
+                const d = document.createElement('div');
+                d.className = `relative aspect-square bg-gray-200 overflow-hidden cursor-pointer ${isSel ? 'ring-4 ring-green-500' : ''}`;
+                d.onclick = () => toggle(p.id);
+                d.innerHTML = `
+                    <img src="${p.url}" class="w-full h-full object-cover ${isSel ? 'opacity-40' : ''}" loading="lazy">
+                    ${isSel ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-check text-2xl text-green-600 bg-white rounded-full p-1"></i></div>' : ''}
+                `;
+                g.appendChild(d);
+            });
+        }
+
+        function toggle(id) {
+            if(state.selected.has(id)) state.selected.delete(id);
+            else {
+                if(state.selected.size >= state.limit) { toast("Kuota Penuh!"); return; }
+                state.selected.add(id);
+            }
+            renderGrid(); renderFooter(); updateUI();
+        }
+
+        function renderFooter() {
+            const f = document.getElementById('footer');
+            const t = document.getElementById('thumbs');
+            t.innerHTML = '';
+            if(state.selected.size > 0) f.classList.remove('translate-y-full');
+            else f.classList.add('translate-y-full');
+
+            state.selected.forEach(id => {
+                const p = state.photos.find(x => x.id === id);
+                const img = document.createElement('img');
+                img.src = p.url;
+                img.className = "h-12 w-12 rounded object-cover border border-gray-300 cursor-pointer";
+                img.onclick = () => toggle(id);
+                t.appendChild(img);
+            });
+        }
+
+        function updateUI() {
+            const c = state.selected.size;
+            document.getElementById('count').innerText = c;
+            document.getElementById('max').innerText = state.limit;
+            document.getElementById('quotaLeft').innerText = state.limit - c;
+            document.getElementById('warn').style.display = c >= state.limit ? 'inline' : 'none';
+        }
+
+        // --- CORE PROCESS: SEND TO DRIVE ---
+        async function processOrder() {
+            if(state.selected.size === 0) return;
+            if(!confirm(`Kirim ${state.selected.size} foto terpilih?`)) return;
+
+            // 1. Siapkan Data Filename
+            const fileList = [];
+            state.selected.forEach(id => {
+                const p = state.photos.find(x => x.id === id);
+                if(p) fileList.push(p.name);
+            });
+
+            // Jika script URL tidak ada, fallback ke WA saja
+            if(!state.script) {
+                sendWA(fileList);
+                return;
+            }
+
+            // 2. Kirim ke Google Script
+            document.getElementById('sendingOverlay').classList.remove('hidden');
+            
+            try {
+                // Gunakan mode no-cors karena GAS biasanya block CORS standard
+                // Kita kirim JSON string
+                const payload = {
+                    folderId: state.id,
+                    projectName: state.name,
+                    files: fileList
+                };
+
+                // Fetch ke Google Script
+                await fetch(state.script, {
+                    method: 'POST',
+                    mode: 'no-cors', // Penting untuk bypass error browser
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Karena no-cors, kita asumsikan sukses jika tidak error
+                document.getElementById('sendingOverlay').classList.add('hidden');
+                
+                // 3. Konfirmasi & Buka WA (Opsional, sebagai backup)
+                if(confirm("Sukses! File .txt sudah disimpan di Drive.\n\nApakah mau kirim notifikasi via WhatsApp juga?")) {
+                    sendWA(fileList);
+                } else {
+                    alert("Selesai! Terima kasih.");
+                    state.selected.clear();
+                    renderGrid(); renderFooter(); updateUI();
+                }
+
+            } catch (e) {
+                document.getElementById('sendingOverlay').classList.add('hidden');
+                alert("Gagal menyimpan otomatis. Mengalihkan ke WhatsApp...");
+                sendWA(fileList);
+            }
+        }
+
+        function sendWA(files) {
+            let msg = `*${state.name}*\nTotal: ${files.length}\n\nList File:\n` + files.join('\n');
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function reset() { if(confirm('Reset?')) { state.selected.clear(); renderGrid(); renderFooter(); updateUI(); } }
+        function fail(msg) { document.getElementById('error').classList.remove('hidden'); document.getElementById('errMsg').innerText = msg; document.getElementById('loader').classList.add('hidden'); }
+        function toast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.classList.remove('hidden', 'toast-enter'); void t.offsetWidth; t.classList.add('toast-enter'); t.classList.remove('hidden'); setTimeout(() => t.classList.add('hidden'), 2000); }
+    </script>
+</body>
+</html>
+
