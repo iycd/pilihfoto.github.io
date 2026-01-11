@@ -2,126 +2,299 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Link Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galeri Seleksi Foto</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Config Tailwind Dark Mode -->
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#1a1a1a', darkcard: '#2d2d2d', } } } }
+    </script>
     <style>
-        body { background-color: #f3f4f6; padding: 20px; }
-        .input-group { margin-bottom: 15px; }
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: #4b5563; text-transform: uppercase; margin-bottom: 5px; }
-        input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 0.375rem; font-size: 0.875rem; }
-        input:focus { outline: none; border-color: #2563eb; ring: 2px solid #2563eb; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .dark .tab-active { border-bottom: 2px solid #60a5fa; color: #60a5fa; }
+        .tab-inactive { color: #6b7280; }
+        .dark .tab-inactive { color: #9ca3af; }
+        /* Watermark */
+        .watermark-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 3rem; font-weight: 900; color: rgba(255, 255, 255, 0.3);
+            pointer-events: none; white-space: nowrap; z-index: 20; text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-24">
 
-    <div class="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden md:max-w-lg">
-        <div class="bg-blue-600 p-4 text-center">
-            <h1 class="text-white font-bold text-xl"><i class="fas fa-cogs"></i> Admin Generator</h1>
-            <p class="text-blue-200 text-xs">Versi Hardcoded</p>
+    <!-- Header -->
+    <div class="bg-white dark:bg-darkcard shadow sticky top-0 z-40 transition-colors duration-300">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
+            <div class="overflow-hidden flex-1 mr-2">
+                <h1 class="font-bold text-gray-900 dark:text-white truncate text-sm md:text-base" id="title">Memuat...</h1>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400">Tahan foto untuk Preview</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 dark:border-blue-800 whitespace-nowrap">
+                    Sisa: <span id="quotaLeft">0</span>
+                </div>
+                <button onclick="toggleSort()" class="text-gray-500 dark:text-gray-300 hover:text-blue-600 p-1"><i id="sortIcon" class="fas fa-sort-alpha-down text-lg"></i></button>
+                <button onclick="toggleTheme()" class="text-gray-500 dark:text-yellow-400 hover:text-blue-600 p-1"><i id="themeIcon" class="fas fa-moon text-lg"></i></button>
+            </div>
         </div>
-
-        <div class="p-6">
-            
-            <!-- CONFIG SECTION (Hidden/Readonly) -->
-            <div class="mb-4 bg-gray-50 p-3 rounded border text-xs text-gray-500">
-                <p><strong>Web Viewer:</strong> <span class="text-green-600">iycd.github.io...</span> (Terkunci)</p>
-                <p><strong>Backend Script:</strong> <span class="text-green-600">script.google.com...</span> (Terkunci)</p>
-            </div>
-
-            <!-- INPUT FORM -->
-            <div class="input-group">
-                <label>Nomor WA Admin (Format 08...)</label>
-                <!-- Masukkan nomor default Anda di value="" bawah ini -->
-                <input type="text" id="adminWa" value="081234567890" placeholder="Contoh: 08123456789">
-                <p class="text-[10px] text-gray-400 mt-1">Otomatis diubah ke 628... saat link dibuat.</p>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 input-group">
-                <div>
-                    <label>Nama Project</label>
-                    <input type="text" id="projName" placeholder="Wedding A & B">
-                </div>
-                <div>
-                    <label>Kuota Foto</label>
-                    <input type="number" id="projQuota" value="20">
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>Link Folder Google Drive</label>
-                <input type="text" id="projDrive" placeholder="Paste Link Folder disini...">
-            </div>
-
-            <button onclick="generateLink()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow transition transform active:scale-95">
-                <i class="fas fa-magic mr-2"></i> Buat Link Klien
-            </button>
-
-            <!-- RESULT AREA -->
-            <div id="resultArea" class="hidden mt-6 pt-4 border-t">
-                <label class="text-green-600 mb-2">Link Untuk Klien:</label>
-                <div class="flex gap-2">
-                    <input type="text" id="finalLink" readonly class="bg-gray-50 text-gray-600 font-mono text-xs">
-                    <button onclick="copyLink()" class="bg-gray-800 text-white px-4 rounded text-xs font-bold">COPY</button>
-                </div>
-                <div class="text-center mt-3">
-                    <a id="testBtn" href="#" target="_blank" class="text-blue-600 text-xs underline font-bold">Test Buka Link &rarr;</a>
-                </div>
+        <div class="max-w-6xl mx-auto">
+            <div id="tabsContainer" class="flex overflow-x-auto scrollbar-hide px-2">
+                <div class="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 whitespace-nowrap">Loading folders...</div>
             </div>
         </div>
     </div>
 
+    <!-- Main -->
+    <main class="max-w-6xl mx-auto px-2 py-4 min-h-screen">
+        <div id="loader" class="text-center py-20">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Syncing Drive...</p>
+        </div>
+        <div id="error" class="hidden text-center py-20 px-6">
+            <div class="text-red-400 text-4xl mb-2"><i class="fas fa-unlink"></i></div>
+            <p id="errMsg" class="text-sm text-gray-600 dark:text-gray-400">Error.</p>
+        </div>
+        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden"></div>
+    </main>
+
+    <!-- Footer -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.2)]">
+        <div onclick="toggleMaximize()" class="w-full flex justify-center py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700">
+            <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"></i>
+        </div>
+        <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2">
+            <div class="flex-1 overflow-hidden">
+                <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">
+                    <span>Terpilih: <span id="count" class="text-blue-600 dark:text-blue-400">0</span> / <span id="max">0</span></span>
+                    <span id="warn" class="text-red-500 hidden">Penuh!</span>
+                </div>
+                <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1 transition-all"></div>
+            </div>
+            <div class="flex gap-2 border-t dark:border-gray-700 md:border-t-0 pt-2 md:pt-0">
+                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
+                <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                    <i class="fas fa-paper-plane"></i> Kirim
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Maximized Panel -->
+    <div id="maximizedPanel" class="fixed inset-0 bg-white dark:bg-darkbg z-[45] hidden flex flex-col transform transition-transform duration-300 translate-y-full pt-16">
+        <div class="px-4 py-2 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-darkcard">
+            <h2 class="font-bold text-gray-700 dark:text-gray-200">Review Pilihan</h2>
+            <button onclick="toggleMaximize()" class="text-gray-500 dark:text-gray-400 p-2"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="maximizedGrid" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 content-start"></div>
+        <div class="h-32"></div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-95 z-[60] hidden flex items-center justify-center p-2" onclick="closePreview()">
+        <div class="relative max-w-full max-h-full">
+            <img id="previewImg" src="" class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl">
+            <div class="watermark-text" id="watermarkText">PREVIEW</div>
+        </div>
+        <button class="absolute top-4 right-4 text-white text-2xl p-2"><i class="fas fa-times"></i></button>
+        <div class="absolute bottom-10 text-white text-center text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full" id="previewName">Nama File</div>
+    </div>
+
+    <!-- Sending Overlay -->
+    <div id="sendingOverlay" class="fixed inset-0 bg-black bg-opacity-80 z-[70] hidden flex flex-col items-center justify-center text-white px-6 text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
+        <h3 class="font-bold text-lg">Menyimpan Data...</h3>
+        <p class="text-sm text-gray-300 mt-2">Mohon tunggu sebentar.</p>
+    </div>
+
     <script>
-        // --- HARDCODED CONFIGURATION ---
-        const VIEWER_URL = "https://iycd.github.io/pilihfoto.github.io/";
-        // Script URL tidak perlu dikirim lewat URL Link karena sudah di-hardcode di sisi Client (index.html) juga.
-        // Tapi jika Client App masih butuh parameter, kita bisa atur nanti. 
-        // Sesuai permintaan, URL Web Viewer di atas sudah fix.
+        // --- HARDCODED CONFIG ---
+        const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; // Ganti dengan API Key Anda
+        const CONST_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPkgt5qVEPLEBeba7nPoxFL8TPkRpoCIG5Z_tCwAH78hQXJrJrXYydNass915lqNOn/exec";
 
-        function generateLink() {
-            // 1. Ambil Data
-            let wa = document.getElementById('adminWa').value.trim();
-            const name = document.getElementById('projName').value.trim();
-            const quota = document.getElementById('projQuota').value.trim();
-            const drive = document.getElementById('projDrive').value.trim();
+        // State
+        let state = { 
+            id: '', name: '', limit: 0, wa: '', 
+            tabs: [], activeTabId: null, selected: new Set(), allPhotosMap: new Map(), sortAsc: true 
+        };
 
-            if(!wa || !name || !quota || !drive) { alert("Data belum lengkap!"); return; }
+        window.onload = async () => {
+            if(localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun'); }
+            
+            const p = new URLSearchParams(window.location.search);
+            state.name = p.get('p');
+            state.limit = parseInt(p.get('q'));
+            state.id = p.get('f');
+            state.wa = p.get('w'); // WA Number dari URL
 
-            // 2. Logic Ubah 08 ke 628
-            // Regex: Jika diawali '0', ganti dengan '62'
-            if (wa.startsWith('0')) {
-                wa = '62' + wa.substring(1);
+            if(!state.name || !state.id) return fail("Link rusak.");
+            
+            document.getElementById('title').innerText = state.name;
+            document.getElementById('watermarkText').innerText = state.name.toUpperCase();
+            loadDraft(); updateUI();
+            await initContent(state.id);
+        };
+
+        // --- CORE FUNCTIONS ---
+        async function initContent(rootId) {
+            try {
+                const data = await fetchDriveFolder(rootId);
+                let tabs = [], rootPhotos = [], subFolders = [];
+                data.files.forEach(f => {
+                    if(f.mimeType.includes('folder')) subFolders.push(f);
+                    else if(f.mimeType.includes('image')) rootPhotos.push(mapPhoto(f));
+                });
+                if(rootPhotos.length > 0) {
+                    tabs.push({ id: 'root', name: 'Utama', photos: rootPhotos });
+                    rootPhotos.forEach(p => state.allPhotosMap.set(p.id, p));
+                }
+                subFolders.forEach(f => tabs.push({ id: f.id, name: f.name, photos: null }));
+                if(tabs.length === 0) throw new Error("Folder kosong.");
+                state.tabs = tabs; renderTabs(); switchTab(tabs[0].id);
+                document.getElementById('loader').classList.add('hidden');
+            } catch (e) { fail(e.message); }
+        }
+
+        async function fetchDriveFolder(fid) {
+            const q = `'${fid}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed = false`;
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,thumbnailLink,webContentLink)&key=${API_KEY}&pageSize=1000`;
+            const res = await fetch(url); return await res.json();
+        }
+
+        function mapPhoto(f) {
+            return {
+                id: f.id, name: f.name,
+                url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s500') : f.webContentLink,
+                previewUrl: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1600') : f.webContentLink
+            };
+        }
+
+        function renderTabs() {
+            const c = document.getElementById('tabsContainer'); c.innerHTML = '';
+            state.tabs.forEach(t => {
+                const b = document.createElement('button'); b.id = `tab-${t.id}`;
+                b.className = `px-4 py-3 text-sm whitespace-nowrap border-b-2 border-transparent transition-colors tab-inactive`;
+                b.innerText = t.name; b.onclick = () => switchTab(t.id); c.appendChild(b);
+            });
+        }
+
+        async function switchTab(id) {
+            state.activeTabId = id;
+            state.tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t.id}`);
+                if(t.id===id) { el.classList.remove('tab-inactive'); el.classList.add('tab-active'); el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+                else { el.classList.add('tab-inactive'); el.classList.remove('tab-active'); }
+            });
+            const t = state.tabs.find(x => x.id === id);
+            if(t.photos === null) {
+                document.getElementById('grid').innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">Memuat...</div>';
+                document.getElementById('grid').classList.remove('hidden');
+                try {
+                    const res = await fetchDriveFolder(id);
+                    const photos = res.files.filter(f=>f.mimeType.includes('image')).map(mapPhoto);
+                    t.photos = photos; photos.forEach(p => state.allPhotosMap.set(p.id, p));
+                } catch(e) { return; }
             }
-            // Jika user iseng input '62' atau '+62', kita bersihkan dulu
-            wa = wa.replace('+', ''); 
-
-            // 3. Ambil Folder ID
-            let fid = "";
-            const match = drive.match(/folders\/([-a-zA-Z0-9_]+)/);
-            if(match) fid = match[1]; else fid = drive;
-
-            // 4. Susun URL
-            const params = new URLSearchParams();
-            params.set('p', name);  // Project Name
-            params.set('q', quota); // Quota
-            params.set('f', fid);   // Folder ID
-            params.set('w', wa);    // WA Number (Formatted)
-
-            const finalUrl = `${VIEWER_URL}?${params.toString()}`;
-
-            // 5. Tampilkan
-            document.getElementById('finalLink').value = finalUrl;
-            document.getElementById('testBtn').href = finalUrl;
-            document.getElementById('resultArea').classList.remove('hidden');
+            renderGrid(t.photos);
         }
 
-        function copyLink() {
-            const t = document.getElementById("finalLink");
-            t.select(); navigator.clipboard.writeText(t.value);
-            alert("Link tersalin!");
+        function renderGrid(photos) {
+            const g = document.getElementById('grid'); g.innerHTML = '';
+            if(photos.length===0) { g.innerHTML='<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder kosong.</div>'; return; }
+            const sorted = [...photos].sort((a,b) => state.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+            sorted.forEach(p => {
+                const sel = state.selected.has(p.id);
+                const el = document.createElement('div');
+                el.className = `relative aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden cursor-pointer select-none ${sel?'ring-4 ring-green-500':''}`;
+                addEvents(el, p);
+                el.innerHTML = `<img src="${p.url}" class="w-full h-full object-cover pointer-events-none transition duration-300 ${sel?'opacity-40':''}" loading="lazy">${sel?'<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fas fa-check text-3xl text-green-600 bg-white rounded-full p-1 shadow"></i></div>':''}<div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>`;
+                g.appendChild(el);
+            });
+            g.classList.remove('hidden');
         }
+
+        function addEvents(el, p) {
+            let timer;
+            const start = () => { timer = setTimeout(() => openPreview(p), 500); };
+            const stop = () => clearTimeout(timer);
+            el.addEventListener('touchstart', start, {passive:true}); el.addEventListener('touchend', stop); el.addEventListener('touchmove', stop);
+            el.addEventListener('mousedown', (e)=>{if(e.button===0)start()}); el.addEventListener('mouseup', stop); el.addEventListener('mouseleave', stop);
+            el.onclick = () => toggle(p.id); el.oncontextmenu = (e)=>{e.preventDefault();return false;};
+        }
+
+        function toggle(id) {
+            if(state.selected.has(id)) state.selected.delete(id);
+            else { if(state.selected.size >= state.limit){ alert("Kuota Penuh!"); return; } state.selected.add(id); }
+            saveDraft();
+            renderGrid(state.tabs.find(t=>t.id===state.activeTabId).photos); renderFooter(); updateUI();
+            if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
+        }
+
+        function renderFooter() {
+            const f = document.getElementById('footer'), t = document.getElementById('thumbs'); t.innerHTML = '';
+            if(state.selected.size>0) f.classList.remove('translate-y-full'); else { f.classList.add('translate-y-full'); closeMaximize(); }
+            state.selected.forEach(id => {
+                const p = state.allPhotosMap.get(id); if(!p) return;
+                const i = document.createElement('img'); i.src = p.url;
+                i.className = "h-12 w-12 rounded object-cover border border-gray-300 dark:border-gray-600 cursor-pointer flex-shrink-0";
+                i.onclick = () => toggle(id); t.appendChild(i);
+            });
+        }
+
+        // --- UTILS ---
+        function openPreview(p) { document.getElementById('previewImg').src=p.previewUrl; document.getElementById('previewName').innerText=p.name; document.getElementById('previewModal').classList.remove('hidden'); if(navigator.vibrate)navigator.vibrate(50); }
+        function closePreview() { document.getElementById('previewModal').classList.add('hidden'); }
+        function toggleSort() { state.sortAsc = !state.sortAsc; document.getElementById('sortIcon').className = state.sortAsc ? "fas fa-sort-alpha-down text-lg" : "fas fa-sort-alpha-up text-lg"; renderGrid(state.tabs.find(t=>t.id===state.activeTabId).photos); }
+        function toggleTheme() { const html=document.documentElement; const i=document.getElementById('themeIcon'); if(html.classList.contains('dark')){html.classList.remove('dark');localStorage.setItem('theme','light');i.classList.replace('fa-sun','fa-moon');}else{html.classList.add('dark');localStorage.setItem('theme','dark');i.classList.replace('fa-moon','fa-sun');} }
+        function updateUI() { const c=state.selected.size; document.getElementById('count').innerText=c; document.getElementById('max').innerText=state.limit; document.getElementById('quotaLeft').innerText=state.limit-c; document.getElementById('warn').style.display=c>=state.limit?'inline':'none'; }
+        
+        function toggleMaximize() { 
+            const p = document.getElementById('maximizedPanel'); const i = document.getElementById('chevronIcon');
+            if(p.classList.contains('hidden')) { p.classList.remove('hidden'); setTimeout(()=>p.classList.remove('translate-y-full'),10); i.className="fas fa-chevron-down absolute right-4 top-2 text-gray-400 text-sm"; renderMaximizedGrid(); }
+            else { closeMaximize(); }
+        }
+        function closeMaximize() { const p = document.getElementById('maximizedPanel'); document.getElementById('chevronIcon').className="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"; p.classList.add('translate-y-full'); setTimeout(()=>p.classList.add('hidden'),300); }
+        function renderMaximizedGrid() {
+            const g = document.getElementById('maximizedGrid'); g.innerHTML='';
+            state.selected.forEach(id=>{
+                const p = state.allPhotosMap.get(id); if(!p)return;
+                const d = document.createElement('div'); d.className="relative aspect-square rounded overflow-hidden";
+                d.innerHTML=`<img src="${p.url}" class="w-full h-full object-cover"><button onclick="toggle('${p.id}')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow"><i class="fas fa-times"></i></button><div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>`;
+                g.appendChild(d);
+            });
+        }
+
+        function saveDraft() { localStorage.setItem('draft_'+state.name, JSON.stringify({t:Date.now(), ids:Array.from(state.selected), cache:Array.from(state.selected).map(id=>state.allPhotosMap.get(id)).filter(p=>p)})); }
+        function loadDraft() { const s=localStorage.getItem('draft_'+state.name); if(s){ try{const d=JSON.parse(s); if(Date.now()-d.t<604800000){ d.ids.forEach(i=>state.selected.add(i)); if(d.cache)d.cache.forEach(p=>state.allPhotosMap.set(p.id,p)); renderFooter(); }}catch(e){} } }
+
+        // --- SENDING ---
+        async function processOrder() {
+            if(state.selected.size===0) return; if(!confirm(`Kirim ${state.selected.size} foto?`)) return;
+            document.getElementById('sendingOverlay').classList.remove('hidden');
+            const files = []; state.selected.forEach(id => { const p=state.allPhotosMap.get(id); if(p) files.push(p.name); });
+            try {
+                await fetch(CONST_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify({projectName:state.name, files:files}) });
+                await new Promise(r=>setTimeout(r,1500));
+                document.getElementById('sendingOverlay').classList.add('hidden');
+                
+                const waText = `*${state.name}*\nTotal: ${files.length} Foto\n\nFilename:\n` + files.join('\n');
+                window.open(`https://wa.me/${state.wa}?text=${encodeURIComponent(waText)}`, '_blank');
+                
+                localStorage.removeItem('draft_'+state.name); state.selected.clear(); window.location.reload();
+            } catch(e) {
+                document.getElementById('sendingOverlay').classList.add('hidden');
+                const waText = `*${state.name}*\nTotal: ${files.length} Foto\n\nFilename:\n` + files.join('\n');
+                window.open(`https://wa.me/${state.wa}?text=${encodeURIComponent(waText)}`, '_blank');
+            }
+        }
+        function fail(m) { document.getElementById('error').classList.remove('hidden'); document.getElementById('errMsg').innerText=m; document.getElementById('loader').classList.add('hidden'); }
     </script>
 </body>
 </html>
+
 
