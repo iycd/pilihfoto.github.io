@@ -2,58 +2,84 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Galeri Seleksi (Subfolders)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galeri Seleksi Foto</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        body { padding-bottom: 120px; -webkit-tap-highlight-color: transparent; }
+        body { padding-bottom: 100px; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
+        
+        /* Animasi */
+        .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .tab-inactive { color: #6b7280; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Mencegah menu klik kanan pada gambar agar Long Press lancar */
+        img { pointer-events: auto; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-    <!-- Header -->
-    <nav class="bg-white shadow sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+    <!-- Header & Tabs Container -->
+    <div class="bg-white shadow sticky top-0 z-40">
+        <!-- Top Bar -->
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center border-b border-gray-100">
             <div class="overflow-hidden">
-                <h1 class="font-bold text-gray-900 truncate" id="title">Memuat...</h1>
-                <p class="text-[10px] text-gray-500" id="statusText">Menghubungkan...</p>
+                <h1 class="font-bold text-gray-900 truncate text-sm md:text-base" id="title">Memuat...</h1>
+                <p class="text-[10px] text-gray-500">Tahan foto untuk Preview</p>
             </div>
-            <div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 whitespace-nowrap ml-2">
+            <div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 ml-2 whitespace-nowrap">
                 Sisa: <span id="quotaLeft">0</span>
             </div>
         </div>
-    </nav>
 
-    <!-- Content -->
+        <!-- TABS (Subfolders) -->
+        <div class="max-w-6xl mx-auto">
+            <div id="tabsContainer" class="flex overflow-x-auto scrollbar-hide px-2">
+                <!-- Tab akan di-inject JS disini -->
+                <div class="px-4 py-3 text-sm text-gray-400 whitespace-nowrap">Loading folders...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (Gallery Grid) -->
     <main class="max-w-6xl mx-auto px-2 py-4 min-h-screen">
-        <!-- Loader -->
         <div id="loader" class="text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-            <p class="mt-4 text-xs font-mono text-gray-500" id="loadingMsg">Sedang memindai folder...</p>
+            <p class="mt-2 text-xs text-gray-400">Syncing Drive...</p>
         </div>
 
-        <!-- Error -->
         <div id="error" class="hidden text-center py-20 px-6">
-            <div class="text-red-400 text-4xl mb-2"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="text-red-400 text-4xl mb-2"><i class="fas fa-unlink"></i></div>
             <p id="errMsg" class="text-sm text-gray-600">Error.</p>
         </div>
 
-        <!-- Gallery -->
-        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden"></div>
+        <!-- Grid Foto -->
+        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden pb-20"></div>
     </main>
 
-    <!-- Footer -->
-    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white border-t z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
+    <!-- FOOTER PANEL (Collapsed State) -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white border-t z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
+        
+        <!-- Handle Bar (Tombol Maximize) -->
+        <div onclick="toggleMaximize()" class="w-full flex justify-center py-1 cursor-pointer hover:bg-gray-50 active:bg-gray-100 border-b">
+            <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+            <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"></i>
+        </div>
+
         <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2">
+            <!-- Thumbs (Horizontal Scroll) -->
             <div class="flex-1 overflow-hidden">
                 <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 uppercase font-bold">
                     <span>Terpilih: <span id="count" class="text-blue-600">0</span> / <span id="max">0</span></span>
                     <span id="warn" class="text-red-500 hidden">Penuh!</span>
                 </div>
-                <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1"></div>
+                <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1 transition-all"></div>
             </div>
+            
+            <!-- Action Buttons -->
             <div class="flex gap-2 border-t md:border-t-0 pt-2 md:pt-0">
                 <button onclick="reset()" class="bg-gray-100 text-gray-600 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
                 <button onclick="processOrder()" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
@@ -63,19 +89,47 @@
         </div>
     </div>
 
-    <!-- Sending Overlay -->
-    <div id="sendingOverlay" class="fixed inset-0 bg-black bg-opacity-80 z-[60] hidden flex flex-col items-center justify-center text-white px-6 text-center">
+    <!-- MAXIMIZED PANEL OVERLAY (Expanded State) -->
+    <div id="maximizedPanel" class="fixed inset-0 bg-white z-[45] hidden flex flex-col transform transition-transform duration-300 translate-y-full pt-16">
+        <div class="px-4 py-2 border-b flex justify-between items-center bg-gray-50">
+            <h2 class="font-bold text-gray-700">Review Pilihan Anda</h2>
+            <button onclick="toggleMaximize()" class="text-gray-500 p-2"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        <div id="maximizedGrid" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 content-start">
+            <!-- Selected items grid injected here -->
+        </div>
+        <!-- Space for footer -->
+        <div class="h-32"></div>
+    </div>
+
+    <!-- PREVIEW MODAL (Long Press) -->
+    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-95 z-[60] hidden flex items-center justify-center p-2" onclick="closePreview()">
+        <img id="previewImg" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl transform scale-95 transition-transform duration-200">
+        <button class="absolute top-4 right-4 text-white text-2xl p-2"><i class="fas fa-times"></i></button>
+        <div class="absolute bottom-10 text-white text-center text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full" id="previewName">Nama File</div>
+    </div>
+
+    <!-- Sending Loading Overlay -->
+    <div id="sendingOverlay" class="fixed inset-0 bg-black bg-opacity-80 z-[70] hidden flex flex-col items-center justify-center text-white px-6 text-center">
         <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
-        <h3 class="font-bold text-lg">Menyimpan...</h3>
-        <p class="text-sm text-gray-300 mt-2">Mohon tunggu, jangan tutup halaman ini.</p>
+        <h3 class="font-bold text-lg">Menyimpan Data...</h3>
+        <p class="text-sm text-gray-300 mt-2">Mohon tunggu, jangan tutup halaman.</p>
     </div>
 
     <script>
-        // --- API KEY (READ ONLY) ---
+        // --- API KEY (Read Only) ---
         const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; 
 
-        let state = { id: '', name: '', limit: 0, script: '', wa: '', photos: [], selected: new Set() };
+        // State Global
+        let state = { 
+            id: '', name: '', limit: 0, script: '', wa: '', 
+            tabs: [], // {id, name, photos: []}
+            activeTabId: null,
+            selected: new Set(), // Set of Photo IDs
+            allPhotosMap: new Map() // Map ID -> Photo Object (untuk lookup cepat)
+        };
 
+        // --- INIT ---
         window.onload = async () => {
             const p = new URLSearchParams(window.location.search);
             state.name = p.get('p');
@@ -84,124 +138,263 @@
             state.script = p.get('s');
             state.wa = p.get('w');
 
-            if(!state.name || !state.id) return fail("Link rusak.");
+            if(!state.name || !state.id) return fail("Link rusak/tidak lengkap.");
 
             document.getElementById('title').innerText = state.name;
             updateUI();
             
-            // Mulai Scan Folder secara Rekursif
-            await startDeepScan(state.id);
+            // 1. Fetch Root Folder Content (Files & Folders)
+            await initContent(state.id);
         };
 
-        // --- DEEP SCAN LOGIC (SUBFOLDERS) ---
-        async function startDeepScan(rootId) {
+        // --- DATA FETCHING (Tabs System) ---
+        async function initContent(rootId) {
             try {
-                let allPhotos = [];
-                let foldersToScan = [rootId]; // Queue folder yang harus discan
+                // Fetch isi folder utama
+                const data = await fetchDriveFolder(rootId);
                 
-                // Batasi kedalaman loop agar tidak infinite (Max scan 20 folder sub-level)
-                let safetyCounter = 0; 
+                // Siapkan Tab "Utama" (jika ada foto di root)
+                let tabs = [];
                 
-                while(foldersToScan.length > 0 && safetyCounter < 50) {
-                    safetyCounter++;
-                    
-                    // Ambil folder pertama di antrian
-                    let currentFolderId = foldersToScan.shift();
-                    document.getElementById('loadingMsg').innerText = `Memindai folder... (${allPhotos.length} foto ditemukan)`;
+                // Pisahkan File Foto dan Folder
+                let rootPhotos = [];
+                let subFolders = [];
 
-                    // Fetch isi folder ini
-                    let result = await fetchFolderContents(currentFolderId);
-                    
-                    // Masukkan foto yang ditemukan ke array utama
-                    allPhotos = allPhotos.concat(result.photos);
-                    
-                    // Masukkan sub-folder yang ditemukan ke antrian untuk discan selanjutnya
-                    foldersToScan = foldersToScan.concat(result.subFolders);
+                data.files.forEach(f => {
+                    if(f.mimeType.includes('folder')) subFolders.push(f);
+                    else if(f.mimeType.includes('image')) rootPhotos.push(mapPhoto(f));
+                });
+
+                // Tab 1: Utama (Root)
+                if(rootPhotos.length > 0) {
+                    tabs.push({ id: 'root', name: 'Utama', photos: rootPhotos });
+                    rootPhotos.forEach(p => state.allPhotosMap.set(p.id, p));
                 }
 
-                if(allPhotos.length === 0) throw new Error("Tidak ditemukan foto (JPG/PNG) di folder ini maupun sub-foldernya.");
+                // Tab 2...N: Subfolders
+                // Kita tampilkan tab dulu, isi fotonya di-load saat diklik (Lazy Load) atau preload skrg.
+                // Agar UX cepat, kita load metadata subfolder saja dulu.
+                subFolders.forEach(folder => {
+                    tabs.push({ id: folder.id, name: folder.name, photos: null }); // photos null = belum load
+                });
 
-                state.photos = allPhotos;
-                document.getElementById('statusText').innerText = `${allPhotos.length} Foto dimuat`;
-                renderGrid();
+                if(tabs.length === 0) throw new Error("Folder kosong.");
+
+                state.tabs = tabs;
+                renderTabs();
+                
+                // Buka tab pertama otomatis
+                switchTab(tabs[0].id);
+
                 document.getElementById('loader').classList.add('hidden');
-                document.getElementById('grid').classList.remove('hidden');
 
             } catch (e) { fail(e.message); }
         }
 
-        async function fetchFolderContents(folderId) {
-            // Query: cari File (Image) ATAU Folder di dalam folderId
+        async function fetchDriveFolder(folderId) {
             const q = `'${folderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed = false`;
             const fields = "files(id, name, mimeType, thumbnailLink, webContentLink)";
-            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${fields}&key=${API_KEY}&pageSize=100`;
-
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${fields}&key=${API_KEY}&pageSize=1000`; // Max page size
             const res = await fetch(url);
-            const data = await res.json();
-            
-            if(data.error) throw new Error(data.error.message);
-
-            let photos = [];
-            let subFolders = [];
-
-            if(data.files) {
-                data.files.forEach(f => {
-                    if(f.mimeType.includes('folder')) {
-                        subFolders.push(f.id);
-                    } else {
-                        photos.push({
-                            id: f.id, 
-                            name: f.name,
-                            url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s400') : f.webContentLink
-                        });
-                    }
-                });
-            }
-            return { photos, subFolders };
+            return await res.json();
         }
 
-        // --- UI FUNCTIONS ---
-        function renderGrid() {
-            const g = document.getElementById('grid');
-            g.innerHTML = '';
-            state.photos.forEach(p => {
-                const isSel = state.selected.has(p.id);
-                const d = document.createElement('div');
-                d.className = `relative aspect-square bg-gray-200 overflow-hidden cursor-pointer ${isSel ? 'ring-4 ring-green-500' : ''}`;
-                d.onclick = () => toggle(p.id);
-                d.innerHTML = `
-                    <img src="${p.url}" class="w-full h-full object-cover ${isSel ? 'opacity-40' : ''}" loading="lazy">
-                    ${isSel ? '<div class="absolute inset-0 flex items-center justify-center"><i class="fas fa-check text-2xl text-green-600 bg-white rounded-full p-1"></i></div>' : ''}
-                    <div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>
-                `;
-                g.appendChild(d);
+        function mapPhoto(f) {
+            return {
+                id: f.id, 
+                name: f.name,
+                url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s500') : f.webContentLink,
+                previewUrl: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1200') : f.webContentLink // High res for preview
+            };
+        }
+
+        // --- TABS LOGIC ---
+        function renderTabs() {
+            const container = document.getElementById('tabsContainer');
+            container.innerHTML = '';
+            
+            state.tabs.forEach(tab => {
+                const btn = document.createElement('button');
+                btn.id = `tab-${tab.id}`;
+                btn.className = `px-4 py-3 text-sm whitespace-nowrap border-b-2 border-transparent transition-colors tab-inactive`;
+                btn.innerText = tab.name;
+                btn.onclick = () => switchTab(tab.id);
+                container.appendChild(btn);
             });
         }
 
+        async function switchTab(tabId) {
+            state.activeTabId = tabId;
+
+            // Update UI Tab Style
+            state.tabs.forEach(t => {
+                const el = document.getElementById(`tab-${t.id}`);
+                if(t.id === tabId) {
+                    el.classList.remove('tab-inactive');
+                    el.classList.add('tab-active');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    el.classList.add('tab-inactive');
+                    el.classList.remove('tab-active');
+                }
+            });
+
+            // Cek apakah data foto di tab ini sudah ada?
+            const tabData = state.tabs.find(t => t.id === tabId);
+            
+            if(tabData.photos === null) {
+                // Fetch data dulu (Lazy Loading)
+                document.getElementById('grid').innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">Memuat foto...</div>';
+                document.getElementById('grid').classList.remove('hidden');
+                
+                try {
+                    const res = await fetchDriveFolder(tabId);
+                    const photos = res.files
+                        .filter(f => f.mimeType.includes('image'))
+                        .map(mapPhoto);
+                    
+                    tabData.photos = photos;
+                    // Masukkan ke Map global untuk referensi
+                    photos.forEach(p => state.allPhotosMap.set(p.id, p));
+                    
+                } catch(e) {
+                    document.getElementById('grid').innerHTML = '<div class="col-span-full text-center text-red-500">Gagal memuat folder ini.</div>';
+                    return;
+                }
+            }
+
+            renderGrid(tabData.photos);
+        }
+
+        // --- GRID RENDER & LONG PRESS ---
+        function renderGrid(photos) {
+            const g = document.getElementById('grid');
+            g.innerHTML = '';
+            
+            if(photos.length === 0) {
+                g.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder ini kosong.</div>';
+                return;
+            }
+
+            photos.forEach(p => {
+                const isSel = state.selected.has(p.id);
+                const el = document.createElement('div');
+                el.className = `relative aspect-square bg-gray-200 overflow-hidden cursor-pointer select-none fade-in ${isSel ? 'ring-4 ring-green-500' : ''}`;
+                
+                // Event Listeners untuk Click & Long Press
+                addInteractionEvents(el, p);
+
+                el.innerHTML = `
+                    <img src="${p.url}" class="w-full h-full object-cover pointer-events-none transition duration-300 ${isSel ? 'opacity-40' : ''}" loading="lazy">
+                    ${isSel ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fas fa-check text-3xl text-green-600 bg-white rounded-full p-1 shadow"></i></div>' : ''}
+                `;
+                g.appendChild(el);
+            });
+            g.classList.remove('hidden');
+        }
+
+        // --- INTERACTION: CLICK & LONG PRESS ---
+        function addInteractionEvents(element, photo) {
+            let pressTimer;
+            const longPressDuration = 500; // ms
+
+            const startPress = (e) => {
+                // e.preventDefault(); // Jangan prevent default biar bisa scroll
+                pressTimer = setTimeout(() => {
+                    openPreview(photo);
+                }, longPressDuration);
+            };
+
+            const cancelPress = () => {
+                clearTimeout(pressTimer);
+            };
+
+            // Touch devices
+            element.addEventListener('touchstart', startPress, {passive: true});
+            element.addEventListener('touchend', cancelPress);
+            element.addEventListener('touchmove', cancelPress); // Cancel kalo scroll
+
+            // Mouse devices
+            element.addEventListener('mousedown', (e) => {
+                if(e.button === 0) startPress(e); // Left click only
+            });
+            element.addEventListener('mouseup', cancelPress);
+            element.addEventListener('mouseleave', cancelPress);
+
+            // Click Biasa (Selection)
+            element.onclick = (e) => {
+                // Hanya pilih jika tidak sedang membuka preview (timer < duration)
+                 toggle(photo.id); 
+            };
+            // Disable context menu
+            element.oncontextmenu = (e) => { e.preventDefault(); return false; };
+        }
+
+        // --- PREVIEW MODAL ---
+        function openPreview(photo) {
+            const modal = document.getElementById('previewModal');
+            const img = document.getElementById('previewImg');
+            const name = document.getElementById('previewName');
+            
+            // Get High Res URL if possible
+            img.src = photo.previewUrl; 
+            name.innerText = photo.name;
+            
+            modal.classList.remove('hidden');
+            // Sedikit animasi zoom
+            setTimeout(() => img.classList.remove('scale-95'), 10);
+            
+            // Vibrate jika di HP
+            if(navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function closePreview() {
+            const modal = document.getElementById('previewModal');
+            const img = document.getElementById('previewImg');
+            img.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+        // --- SELECTION LOGIC ---
         function toggle(id) {
+            // Re-render hanya elemen yang berubah (optimasi) atau render ulang semua kalau simple
             if(state.selected.has(id)) state.selected.delete(id);
             else {
                 if(state.selected.size >= state.limit) { alert("Kuota Penuh!"); return; }
                 state.selected.add(id);
             }
-            renderGrid(); renderFooter(); updateUI();
+            
+            // Re-render current tab grid & footer
+            const currentPhotos = state.tabs.find(t => t.id === state.activeTabId).photos;
+            renderGrid(currentPhotos);
+            renderFooter();
+            updateUI();
+            
+            // Jika maximized panel sedang terbuka, refresh juga
+            if(!document.getElementById('maximizedPanel').classList.contains('hidden')) {
+                renderMaximizedGrid();
+            }
         }
 
         function renderFooter() {
             const f = document.getElementById('footer');
             const t = document.getElementById('thumbs');
             t.innerHTML = '';
-            state.selected.size > 0 ? f.classList.remove('translate-y-full') : f.classList.add('translate-y-full');
+            
+            if(state.selected.size > 0) f.classList.remove('translate-y-full');
+            else {
+                f.classList.add('translate-y-full');
+                closeMaximize(); // Tutup maximize jika kosong
+            }
 
             state.selected.forEach(id => {
-                const p = state.photos.find(x => x.id === id);
-                if(p) {
-                    const img = document.createElement('img');
-                    img.src = p.url;
-                    img.className = "h-12 w-12 rounded border border-gray-300 cursor-pointer";
-                    img.onclick = () => toggle(id);
-                    t.appendChild(img);
-                }
+                const p = state.allPhotosMap.get(id);
+                if(!p) return;
+                const img = document.createElement('img');
+                img.src = p.url;
+                img.className = "h-12 w-12 rounded object-cover border border-gray-300 cursor-pointer flex-shrink-0";
+                img.onclick = () => toggle(id);
+                t.appendChild(img);
             });
         }
 
@@ -213,16 +406,58 @@
             document.getElementById('warn').style.display = c >= state.limit ? 'inline' : 'none';
         }
 
+        // --- MAXIMIZE PANEL ---
+        function toggleMaximize() {
+            const panel = document.getElementById('maximizedPanel');
+            const icon = document.getElementById('chevronIcon');
+            
+            if(panel.classList.contains('hidden')) {
+                // Buka
+                panel.classList.remove('hidden');
+                setTimeout(() => panel.classList.remove('translate-y-full'), 10);
+                icon.className = "fas fa-chevron-down absolute right-4 top-2 text-gray-400 text-sm";
+                renderMaximizedGrid();
+            } else {
+                closeMaximize();
+            }
+        }
+
+        function closeMaximize() {
+            const panel = document.getElementById('maximizedPanel');
+            const icon = document.getElementById('chevronIcon');
+            panel.classList.add('translate-y-full');
+            setTimeout(() => panel.classList.add('hidden'), 300);
+            icon.className = "fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm";
+        }
+
+        function renderMaximizedGrid() {
+            const grid = document.getElementById('maximizedGrid');
+            grid.innerHTML = '';
+            
+            state.selected.forEach(id => {
+                const p = state.allPhotosMap.get(id);
+                if(!p) return;
+                
+                const d = document.createElement('div');
+                d.className = "relative aspect-square rounded overflow-hidden";
+                d.innerHTML = `
+                    <img src="${p.url}" class="w-full h-full object-cover">
+                    <button onclick="toggle('${p.id}')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow"><i class="fas fa-times"></i></button>
+                    <div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>
+                `;
+                grid.appendChild(d);
+            });
+        }
+
         // --- SENDING PROCESS ---
         async function processOrder() {
             if(state.selected.size === 0) return;
             if(!confirm(`Kirim ${state.selected.size} foto sekarang?`)) return;
 
             document.getElementById('sendingOverlay').classList.remove('hidden');
-
             const fileList = [];
             state.selected.forEach(id => {
-                const p = state.photos.find(x => x.id === id);
+                const p = state.allPhotosMap.get(id);
                 if(p) fileList.push(p.name);
             });
 
@@ -231,31 +466,27 @@
                     await fetch(state.script, {
                         method: 'POST', mode: 'no-cors',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            projectName: state.name,
-                            files: fileList
-                        })
+                        body: JSON.stringify({ projectName: state.name, files: fileList })
                     });
                 }
-                
                 await new Promise(r => setTimeout(r, 1500));
                 document.getElementById('sendingOverlay').classList.add('hidden');
 
                 const waText = `*${state.name}*\nTotal: ${fileList.length} Foto\n\nFilename:\n` + fileList.join('\n');
-                const phone = state.wa || ""; 
-                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`, '_blank');
+                window.open(`https://wa.me/${state.wa || ''}?text=${encodeURIComponent(waText)}`, '_blank');
                 
-                state.selected.clear(); renderGrid(); renderFooter(); updateUI();
+                state.selected.clear();
+                window.location.reload(); // Reload fresh start
 
             } catch (e) {
                 document.getElementById('sendingOverlay').classList.add('hidden');
-                alert("Gagal koneksi server, mengalihkan ke WhatsApp...");
+                alert("Mengalihkan ke WhatsApp...");
                 const waText = `*${state.name}*\nTotal: ${fileList.length} Foto\n\nFilename:\n` + fileList.join('\n');
-                window.open(`https://wa.me/${state.wa}?text=${encodeURIComponent(waText)}`, '_blank');
+                window.open(`https://wa.me/${state.wa || ''}?text=${encodeURIComponent(waText)}`, '_blank');
             }
         }
 
-        function reset() { if(confirm('Reset?')) { state.selected.clear(); renderGrid(); renderFooter(); updateUI(); } }
+        function reset() { if(confirm('Hapus semua pilihan?')) { state.selected.clear(); renderFooter(); updateUI(); if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid(); const currentTabPhotos = state.tabs.find(t => t.id === state.activeTabId).photos; if(currentTabPhotos) renderGrid(currentTabPhotos); } }
         function fail(msg) { document.getElementById('error').classList.remove('hidden'); document.getElementById('errMsg').innerText = msg; document.getElementById('loader').classList.add('hidden'); }
     </script>
 </body>
