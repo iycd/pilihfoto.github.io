@@ -5,132 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Galeri Seleksi Foto</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#1a1a1a',
+                        darkcard: '#2d2d2d',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        body { padding-bottom: 100px; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
+        body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
         
-        /* Animasi */
+        /* Animasi Tab */
         .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .dark .tab-active { border-bottom: 2px solid #60a5fa; color: #60a5fa; }
         .tab-inactive { color: #6b7280; }
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .dark .tab-inactive { color: #9ca3af; }
 
-        /* Mencegah menu klik kanan pada gambar agar Long Press lancar */
-        img { pointer-events: auto; }
+        /* Watermark Style */
+        .watermark-text {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 3rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.3);
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 20;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-24">
 
-    <!-- Header & Tabs Container -->
-    <div class="bg-white shadow sticky top-0 z-40">
+    <!-- Header & Tabs -->
+    <div class="bg-white dark:bg-darkcard shadow sticky top-0 z-40 transition-colors duration-300">
         <!-- Top Bar -->
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center border-b border-gray-100">
-            <div class="overflow-hidden">
-                <h1 class="font-bold text-gray-900 truncate text-sm md:text-base" id="title">Memuat...</h1>
-                <p class="text-[10px] text-gray-500">Tahan foto untuk Preview</p>
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
+            <div class="overflow-hidden flex-1 mr-2">
+                <h1 class="font-bold text-gray-900 dark:text-white truncate text-sm md:text-base" id="title">Memuat...</h1>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400">Tahan foto untuk Preview</p>
             </div>
-            <div class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 ml-2 whitespace-nowrap">
-                Sisa: <span id="quotaLeft">0</span>
+            
+            <!-- Toolbar Kanan -->
+            <div class="flex items-center gap-3">
+                <!-- Sisa Kuota -->
+                <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 dark:border-blue-800 whitespace-nowrap">
+                    Sisa: <span id="quotaLeft">0</span>
+                </div>
+
+                <!-- Sort Button -->
+                <button onclick="toggleSort()" class="text-gray-500 dark:text-gray-300 hover:text-blue-600 p-1" title="Urutkan A-Z">
+                    <i id="sortIcon" class="fas fa-sort-alpha-down text-lg"></i>
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button onclick="toggleTheme()" class="text-gray-500 dark:text-yellow-400 hover:text-blue-600 p-1">
+                    <i id="themeIcon" class="fas fa-moon text-lg"></i>
+                </button>
             </div>
         </div>
 
         <!-- TABS (Subfolders) -->
         <div class="max-w-6xl mx-auto">
             <div id="tabsContainer" class="flex overflow-x-auto scrollbar-hide px-2">
-                <!-- Tab akan di-inject JS disini -->
-                <div class="px-4 py-3 text-sm text-gray-400 whitespace-nowrap">Loading folders...</div>
+                <div class="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 whitespace-nowrap">Loading folders...</div>
             </div>
         </div>
     </div>
 
-    <!-- Main Content (Gallery Grid) -->
+    <!-- Main Content -->
     <main class="max-w-6xl mx-auto px-2 py-4 min-h-screen">
+        <!-- Loader -->
         <div id="loader" class="text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-            <p class="mt-2 text-xs text-gray-400">Syncing Drive...</p>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Syncing Drive...</p>
         </div>
 
+        <!-- Error -->
         <div id="error" class="hidden text-center py-20 px-6">
             <div class="text-red-400 text-4xl mb-2"><i class="fas fa-unlink"></i></div>
-            <p id="errMsg" class="text-sm text-gray-600">Error.</p>
+            <p id="errMsg" class="text-sm text-gray-600 dark:text-gray-400">Error.</p>
         </div>
 
         <!-- Grid Foto -->
-        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden pb-20"></div>
+        <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden"></div>
     </main>
 
-    <!-- FOOTER PANEL (Collapsed State) -->
-    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white border-t z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.1)]">
+    <!-- FOOTER PANEL -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.2)]">
         
-        <!-- Handle Bar (Tombol Maximize) -->
-        <div onclick="toggleMaximize()" class="w-full flex justify-center py-1 cursor-pointer hover:bg-gray-50 active:bg-gray-100 border-b">
-            <div class="w-10 h-1 bg-gray-300 rounded-full"></div>
+        <!-- Handle Bar (Maximize) -->
+        <div onclick="toggleMaximize()" class="w-full flex justify-center py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700">
+            <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
             <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"></i>
         </div>
 
         <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2">
-            <!-- Thumbs (Horizontal Scroll) -->
+            <!-- Thumbs -->
             <div class="flex-1 overflow-hidden">
-                <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 uppercase font-bold">
-                    <span>Terpilih: <span id="count" class="text-blue-600">0</span> / <span id="max">0</span></span>
+                <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">
+                    <span>Terpilih: <span id="count" class="text-blue-600 dark:text-blue-400">0</span> / <span id="max">0</span></span>
                     <span id="warn" class="text-red-500 hidden">Penuh!</span>
                 </div>
                 <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1 transition-all"></div>
             </div>
             
-            <!-- Action Buttons -->
-            <div class="flex gap-2 border-t md:border-t-0 pt-2 md:pt-0">
-                <button onclick="reset()" class="bg-gray-100 text-gray-600 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
-                <button onclick="processOrder()" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+            <!-- Buttons -->
+            <div class="flex gap-2 border-t dark:border-gray-700 md:border-t-0 pt-2 md:pt-0">
+                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
+                <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fas fa-paper-plane"></i> Kirim
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MAXIMIZED PANEL OVERLAY (Expanded State) -->
-    <div id="maximizedPanel" class="fixed inset-0 bg-white z-[45] hidden flex flex-col transform transition-transform duration-300 translate-y-full pt-16">
-        <div class="px-4 py-2 border-b flex justify-between items-center bg-gray-50">
-            <h2 class="font-bold text-gray-700">Review Pilihan Anda</h2>
-            <button onclick="toggleMaximize()" class="text-gray-500 p-2"><i class="fas fa-times text-xl"></i></button>
+    <!-- MAXIMIZED PANEL -->
+    <div id="maximizedPanel" class="fixed inset-0 bg-white dark:bg-darkbg z-[45] hidden flex flex-col transform transition-transform duration-300 translate-y-full pt-16">
+        <div class="px-4 py-2 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-darkcard">
+            <h2 class="font-bold text-gray-700 dark:text-gray-200">Review Pilihan</h2>
+            <button onclick="toggleMaximize()" class="text-gray-500 dark:text-gray-400 p-2"><i class="fas fa-times text-xl"></i></button>
         </div>
-        <div id="maximizedGrid" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 content-start">
-            <!-- Selected items grid injected here -->
-        </div>
-        <!-- Space for footer -->
+        <div id="maximizedGrid" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 content-start"></div>
         <div class="h-32"></div>
     </div>
 
-    <!-- PREVIEW MODAL (Long Press) -->
+    <!-- PREVIEW MODAL (Watermark) -->
     <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-95 z-[60] hidden flex items-center justify-center p-2" onclick="closePreview()">
-        <img id="previewImg" src="" class="max-w-full max-h-full object-contain rounded shadow-2xl transform scale-95 transition-transform duration-200">
+        <div class="relative max-w-full max-h-full">
+            <img id="previewImg" src="" class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl">
+            <!-- Watermark Overlay -->
+            <div class="watermark-text" id="watermarkText">PREVIEW</div>
+        </div>
         <button class="absolute top-4 right-4 text-white text-2xl p-2"><i class="fas fa-times"></i></button>
         <div class="absolute bottom-10 text-white text-center text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full" id="previewName">Nama File</div>
     </div>
 
-    <!-- Sending Loading Overlay -->
+    <!-- Loading Overlay -->
     <div id="sendingOverlay" class="fixed inset-0 bg-black bg-opacity-80 z-[70] hidden flex flex-col items-center justify-center text-white px-6 text-center">
         <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mb-4"></div>
         <h3 class="font-bold text-lg">Menyimpan Data...</h3>
-        <p class="text-sm text-gray-300 mt-2">Mohon tunggu, jangan tutup halaman.</p>
+        <p class="text-sm text-gray-300 mt-2">Mohon tunggu sebentar.</p>
     </div>
 
     <script>
-        // --- API KEY (Read Only) ---
+        // --- API KEY ---
         const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; 
 
         // State Global
         let state = { 
             id: '', name: '', limit: 0, script: '', wa: '', 
-            tabs: [], // {id, name, photos: []}
+            tabs: [],
             activeTabId: null,
-            selected: new Set(), // Set of Photo IDs
-            allPhotosMap: new Map() // Map ID -> Photo Object (untuk lookup cepat)
+            selected: new Set(), 
+            allPhotosMap: new Map(), // Menyimpan detail foto {id, name, url}
+            sortAsc: true, // Default Sort A-Z
         };
 
-        // --- INIT ---
+        // --- INIT & THEME ---
         window.onload = async () => {
+            // 1. Load Theme
+            if(localStorage.getItem('theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun');
+            }
+
             const p = new URLSearchParams(window.location.search);
             state.name = p.get('p');
             state.limit = parseInt(p.get('q'));
@@ -138,25 +186,69 @@
             state.script = p.get('s');
             state.wa = p.get('w');
 
-            if(!state.name || !state.id) return fail("Link rusak/tidak lengkap.");
+            if(!state.name || !state.id) return fail("Link rusak.");
 
             document.getElementById('title').innerText = state.name;
+            document.getElementById('watermarkText').innerText = state.name.toUpperCase(); // Set Watermark Text
+
+            // 2. Load Draft from LocalStorage
+            loadDraft();
+
             updateUI();
-            
-            // 1. Fetch Root Folder Content (Files & Folders)
             await initContent(state.id);
         };
 
-        // --- DATA FETCHING (Tabs System) ---
+        // --- STORAGE & DRAFTS ---
+        function saveDraft() {
+            // Kita simpan array ID saja
+            const draftData = {
+                timestamp: Date.now(),
+                selectedIds: Array.from(state.selected),
+                // Kita juga simpan info foto minimal agar footer bisa render meskipun tab belum di-load
+                photoCache: Array.from(state.selected).map(id => state.allPhotosMap.get(id)).filter(p => p)
+            };
+            // Gunakan Project Name sebagai key agar unik per klien
+            localStorage.setItem('draft_' + state.name, JSON.stringify(draftData));
+        }
+
+        function loadDraft() {
+            const saved = localStorage.getItem('draft_' + state.name);
+            if(saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    // Validasi simple: Expire draft setelah 7 hari (opsional, tapi bagus)
+                    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+                    if(Date.now() - data.timestamp < sevenDays) {
+                        data.selectedIds.forEach(id => state.selected.add(id));
+                        // Restore photo cache ke map global agar footer muncul
+                        if(data.photoCache) {
+                            data.photoCache.forEach(p => state.allPhotosMap.set(p.id, p));
+                        }
+                        renderFooter();
+                    }
+                } catch(e) { console.error("Draft error", e); }
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            if(html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                icon.classList.replace('fa-sun', 'fa-moon');
+            } else {
+                html.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                icon.classList.replace('fa-moon', 'fa-sun');
+            }
+        }
+
+        // --- DATA FETCHING ---
         async function initContent(rootId) {
             try {
-                // Fetch isi folder utama
                 const data = await fetchDriveFolder(rootId);
-                
-                // Siapkan Tab "Utama" (jika ada foto di root)
                 let tabs = [];
-                
-                // Pisahkan File Foto dan Folder
                 let rootPhotos = [];
                 let subFolders = [];
 
@@ -165,36 +257,27 @@
                     else if(f.mimeType.includes('image')) rootPhotos.push(mapPhoto(f));
                 });
 
-                // Tab 1: Utama (Root)
                 if(rootPhotos.length > 0) {
                     tabs.push({ id: 'root', name: 'Utama', photos: rootPhotos });
                     rootPhotos.forEach(p => state.allPhotosMap.set(p.id, p));
                 }
 
-                // Tab 2...N: Subfolders
-                // Kita tampilkan tab dulu, isi fotonya di-load saat diklik (Lazy Load) atau preload skrg.
-                // Agar UX cepat, kita load metadata subfolder saja dulu.
                 subFolders.forEach(folder => {
-                    tabs.push({ id: folder.id, name: folder.name, photos: null }); // photos null = belum load
+                    tabs.push({ id: folder.id, name: folder.name, photos: null }); 
                 });
 
                 if(tabs.length === 0) throw new Error("Folder kosong.");
-
                 state.tabs = tabs;
                 renderTabs();
-                
-                // Buka tab pertama otomatis
                 switchTab(tabs[0].id);
-
                 document.getElementById('loader').classList.add('hidden');
-
             } catch (e) { fail(e.message); }
         }
 
         async function fetchDriveFolder(folderId) {
             const q = `'${folderId}' in parents and (mimeType contains 'image/' or mimeType = 'application/vnd.google-apps.folder') and trashed = false`;
             const fields = "files(id, name, mimeType, thumbnailLink, webContentLink)";
-            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${fields}&key=${API_KEY}&pageSize=1000`; // Max page size
+            const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=${fields}&key=${API_KEY}&pageSize=1000`;
             const res = await fetch(url);
             return await res.json();
         }
@@ -204,15 +287,14 @@
                 id: f.id, 
                 name: f.name,
                 url: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s500') : f.webContentLink,
-                previewUrl: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1200') : f.webContentLink // High res for preview
+                previewUrl: f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+/, '=s1600') : f.webContentLink
             };
         }
 
-        // --- TABS LOGIC ---
+        // --- TABS & SORTING ---
         function renderTabs() {
             const container = document.getElementById('tabsContainer');
             container.innerHTML = '';
-            
             state.tabs.forEach(tab => {
                 const btn = document.createElement('button');
                 btn.id = `tab-${tab.id}`;
@@ -225,8 +307,6 @@
 
         async function switchTab(tabId) {
             state.activeTabId = tabId;
-
-            // Update UI Tab Style
             state.tabs.forEach(t => {
                 const el = document.getElementById(`tab-${t.id}`);
                 if(t.id === tabId) {
@@ -239,141 +319,107 @@
                 }
             });
 
-            // Cek apakah data foto di tab ini sudah ada?
             const tabData = state.tabs.find(t => t.id === tabId);
-            
             if(tabData.photos === null) {
-                // Fetch data dulu (Lazy Loading)
                 document.getElementById('grid').innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">Memuat foto...</div>';
                 document.getElementById('grid').classList.remove('hidden');
-                
                 try {
                     const res = await fetchDriveFolder(tabId);
-                    const photos = res.files
-                        .filter(f => f.mimeType.includes('image'))
-                        .map(mapPhoto);
-                    
+                    const photos = res.files.filter(f => f.mimeType.includes('image')).map(mapPhoto);
                     tabData.photos = photos;
-                    // Masukkan ke Map global untuk referensi
                     photos.forEach(p => state.allPhotosMap.set(p.id, p));
-                    
-                } catch(e) {
-                    document.getElementById('grid').innerHTML = '<div class="col-span-full text-center text-red-500">Gagal memuat folder ini.</div>';
-                    return;
-                }
+                } catch(e) { return; }
             }
-
             renderGrid(tabData.photos);
         }
 
-        // --- GRID RENDER & LONG PRESS ---
+        function toggleSort() {
+            state.sortAsc = !state.sortAsc;
+            const icon = document.getElementById('sortIcon');
+            icon.className = state.sortAsc ? "fas fa-sort-alpha-down text-lg" : "fas fa-sort-alpha-up text-lg";
+            
+            // Re-render current tab
+            if(state.activeTabId) {
+                const currentTab = state.tabs.find(t => t.id === state.activeTabId);
+                if(currentTab && currentTab.photos) {
+                    renderGrid(currentTab.photos);
+                }
+            }
+        }
+
+        // --- RENDER GRID ---
         function renderGrid(photos) {
             const g = document.getElementById('grid');
             g.innerHTML = '';
             
             if(photos.length === 0) {
-                g.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder ini kosong.</div>';
+                g.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder kosong.</div>';
                 return;
             }
 
-            photos.forEach(p => {
+            // Sorting Logic
+            const sortedPhotos = [...photos].sort((a, b) => {
+                return state.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+            });
+
+            sortedPhotos.forEach(p => {
                 const isSel = state.selected.has(p.id);
                 const el = document.createElement('div');
-                el.className = `relative aspect-square bg-gray-200 overflow-hidden cursor-pointer select-none fade-in ${isSel ? 'ring-4 ring-green-500' : ''}`;
+                el.className = `relative aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden cursor-pointer select-none ${isSel ? 'ring-4 ring-green-500' : ''}`;
                 
-                // Event Listeners untuk Click & Long Press
                 addInteractionEvents(el, p);
 
                 el.innerHTML = `
                     <img src="${p.url}" class="w-full h-full object-cover pointer-events-none transition duration-300 ${isSel ? 'opacity-40' : ''}" loading="lazy">
                     ${isSel ? '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fas fa-check text-3xl text-green-600 bg-white rounded-full p-1 shadow"></i></div>' : ''}
+                    <div class="absolute bottom-0 w-full bg-black/50 text-white text-[10px] p-1 truncate text-center">${p.name}</div>
                 `;
                 g.appendChild(el);
             });
             g.classList.remove('hidden');
         }
 
-        // --- INTERACTION: CLICK & LONG PRESS ---
         function addInteractionEvents(element, photo) {
             let pressTimer;
-            const longPressDuration = 500; // ms
+            const startPress = () => { pressTimer = setTimeout(() => openPreview(photo), 500); };
+            const cancelPress = () => clearTimeout(pressTimer);
 
-            const startPress = (e) => {
-                // e.preventDefault(); // Jangan prevent default biar bisa scroll
-                pressTimer = setTimeout(() => {
-                    openPreview(photo);
-                }, longPressDuration);
-            };
-
-            const cancelPress = () => {
-                clearTimeout(pressTimer);
-            };
-
-            // Touch devices
             element.addEventListener('touchstart', startPress, {passive: true});
             element.addEventListener('touchend', cancelPress);
-            element.addEventListener('touchmove', cancelPress); // Cancel kalo scroll
-
-            // Mouse devices
-            element.addEventListener('mousedown', (e) => {
-                if(e.button === 0) startPress(e); // Left click only
-            });
+            element.addEventListener('touchmove', cancelPress);
+            element.addEventListener('mousedown', (e) => { if(e.button===0) startPress(); });
             element.addEventListener('mouseup', cancelPress);
             element.addEventListener('mouseleave', cancelPress);
-
-            // Click Biasa (Selection)
-            element.onclick = (e) => {
-                // Hanya pilih jika tidak sedang membuka preview (timer < duration)
-                 toggle(photo.id); 
-            };
-            // Disable context menu
+            element.onclick = () => toggle(photo.id);
             element.oncontextmenu = (e) => { e.preventDefault(); return false; };
         }
 
-        // --- PREVIEW MODAL ---
+        // --- PREVIEW ---
         function openPreview(photo) {
             const modal = document.getElementById('previewModal');
-            const img = document.getElementById('previewImg');
-            const name = document.getElementById('previewName');
-            
-            // Get High Res URL if possible
-            img.src = photo.previewUrl; 
-            name.innerText = photo.name;
-            
+            document.getElementById('previewImg').src = photo.previewUrl;
+            document.getElementById('previewName').innerText = photo.name;
             modal.classList.remove('hidden');
-            // Sedikit animasi zoom
-            setTimeout(() => img.classList.remove('scale-95'), 10);
-            
-            // Vibrate jika di HP
             if(navigator.vibrate) navigator.vibrate(50);
         }
 
-        function closePreview() {
-            const modal = document.getElementById('previewModal');
-            const img = document.getElementById('previewImg');
-            img.classList.add('scale-95');
-            setTimeout(() => modal.classList.add('hidden'), 200);
-        }
+        function closePreview() { document.getElementById('previewModal').classList.add('hidden'); }
 
-        // --- SELECTION LOGIC ---
+        // --- SELECTION & UPDATE ---
         function toggle(id) {
-            // Re-render hanya elemen yang berubah (optimasi) atau render ulang semua kalau simple
             if(state.selected.has(id)) state.selected.delete(id);
             else {
                 if(state.selected.size >= state.limit) { alert("Kuota Penuh!"); return; }
                 state.selected.add(id);
             }
             
-            // Re-render current tab grid & footer
+            saveDraft(); // Auto Save Draft
+            
             const currentPhotos = state.tabs.find(t => t.id === state.activeTabId).photos;
             renderGrid(currentPhotos);
             renderFooter();
             updateUI();
-            
-            // Jika maximized panel sedang terbuka, refresh juga
-            if(!document.getElementById('maximizedPanel').classList.contains('hidden')) {
-                renderMaximizedGrid();
-            }
+            if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
         }
 
         function renderFooter() {
@@ -382,17 +428,14 @@
             t.innerHTML = '';
             
             if(state.selected.size > 0) f.classList.remove('translate-y-full');
-            else {
-                f.classList.add('translate-y-full');
-                closeMaximize(); // Tutup maximize jika kosong
-            }
+            else { f.classList.add('translate-y-full'); closeMaximize(); }
 
             state.selected.forEach(id => {
                 const p = state.allPhotosMap.get(id);
-                if(!p) return;
+                if(!p) return; // Skip jika data belum terload (rare case)
                 const img = document.createElement('img');
                 img.src = p.url;
-                img.className = "h-12 w-12 rounded object-cover border border-gray-300 cursor-pointer flex-shrink-0";
+                img.className = "h-12 w-12 rounded object-cover border border-gray-300 dark:border-gray-600 cursor-pointer flex-shrink-0";
                 img.onclick = () => toggle(id);
                 t.appendChild(img);
             });
@@ -406,38 +449,29 @@
             document.getElementById('warn').style.display = c >= state.limit ? 'inline' : 'none';
         }
 
-        // --- MAXIMIZE PANEL ---
+        // --- MAXIMIZE & PROCESS ---
         function toggleMaximize() {
             const panel = document.getElementById('maximizedPanel');
             const icon = document.getElementById('chevronIcon');
-            
             if(panel.classList.contains('hidden')) {
-                // Buka
                 panel.classList.remove('hidden');
                 setTimeout(() => panel.classList.remove('translate-y-full'), 10);
                 icon.className = "fas fa-chevron-down absolute right-4 top-2 text-gray-400 text-sm";
                 renderMaximizedGrid();
-            } else {
-                closeMaximize();
-            }
+            } else { closeMaximize(); }
         }
-
         function closeMaximize() {
             const panel = document.getElementById('maximizedPanel');
-            const icon = document.getElementById('chevronIcon');
+            document.getElementById('chevronIcon').className = "fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm";
             panel.classList.add('translate-y-full');
             setTimeout(() => panel.classList.add('hidden'), 300);
-            icon.className = "fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm";
         }
-
         function renderMaximizedGrid() {
             const grid = document.getElementById('maximizedGrid');
             grid.innerHTML = '';
-            
             state.selected.forEach(id => {
                 const p = state.allPhotosMap.get(id);
                 if(!p) return;
-                
                 const d = document.createElement('div');
                 d.className = "relative aspect-square rounded overflow-hidden";
                 d.innerHTML = `
@@ -449,7 +483,6 @@
             });
         }
 
-        // --- SENDING PROCESS ---
         async function processOrder() {
             if(state.selected.size === 0) return;
             if(!confirm(`Kirim ${state.selected.size} foto sekarang?`)) return;
@@ -473,10 +506,13 @@
                 document.getElementById('sendingOverlay').classList.add('hidden');
 
                 const waText = `*${state.name}*\nTotal: ${fileList.length} Foto\n\nFilename:\n` + fileList.join('\n');
-                window.open(`https://wa.me/${state.wa || ''}?text=${encodeURIComponent(waText)}`, '_blank');
+                const phone = state.wa || ""; 
+                window.open(`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`, '_blank');
                 
+                // Clear Draft after success
+                localStorage.removeItem('draft_' + state.name);
                 state.selected.clear();
-                window.location.reload(); // Reload fresh start
+                window.location.reload(); 
 
             } catch (e) {
                 document.getElementById('sendingOverlay').classList.add('hidden');
@@ -486,7 +522,16 @@
             }
         }
 
-        function reset() { if(confirm('Hapus semua pilihan?')) { state.selected.clear(); renderFooter(); updateUI(); if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid(); const currentTabPhotos = state.tabs.find(t => t.id === state.activeTabId).photos; if(currentTabPhotos) renderGrid(currentTabPhotos); } }
+        function reset() { 
+            if(confirm('Hapus semua pilihan?')) { 
+                state.selected.clear(); 
+                saveDraft(); // Update draft jadi kosong
+                renderFooter(); updateUI(); 
+                const currentTabPhotos = state.tabs.find(t => t.id === state.activeTabId).photos;
+                if(currentTabPhotos) renderGrid(currentTabPhotos);
+                if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
+            } 
+        }
         function fail(msg) { document.getElementById('error').classList.remove('hidden'); document.getElementById('errMsg').innerText = msg; document.getElementById('loader').classList.add('hidden'); }
     </script>
 </body>
