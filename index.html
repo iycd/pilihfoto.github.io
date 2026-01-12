@@ -41,7 +41,7 @@
         .slide-panel.dragging { transition: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-24 overflow-x-hidden">
+<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-36 overflow-x-hidden">
 
     <!-- HEADER -->
     <div class="bg-white dark:bg-darkcard shadow sticky top-0 z-40 transition-colors duration-300">
@@ -81,19 +81,19 @@
     </main>
 
     <!-- FOOTER PANEL (Swipeable) -->
-    <!-- translate-y-full artinya tersembunyi di bawah -->
-    <div id="footer" class="fixed bottom-0 left-0 w-full h-[85vh] bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-[calc(100%-80px)] slide-panel shadow-[0_-5px_20px_rgba(0,0,0,0.3)] flex flex-col rounded-t-2xl">
+    <!-- Diperbesar area terlihatnya menjadi 140px agar tidak terpotong -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full h-[90vh] bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-[calc(100%-140px)] slide-panel shadow-[0_-5px_20px_rgba(0,0,0,0.3)] flex flex-col rounded-t-2xl">
         
         <!-- Handle Bar (Area Geser) -->
-        <div id="footerHandle" class="w-full flex justify-center py-3 cursor-grab hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700 flex-shrink-0 touch-none">
+        <div id="footerHandle" class="w-full flex justify-center py-3 cursor-grab hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700 flex-shrink-0 touch-none bg-gray-50 dark:bg-darkcard rounded-t-2xl">
             <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
             <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-3 text-gray-400 text-sm"></i>
         </div>
 
         <!-- Footer Content (Collapsed View) -->
-        <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2 w-full bg-white dark:bg-darkcard">
+        <div class="max-w-6xl mx-auto p-3 flex flex-col gap-2 w-full bg-white dark:bg-darkcard">
             <!-- Thumbs Row -->
-            <div class="flex-1 overflow-hidden">
+            <div class="overflow-hidden">
                 <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">
                     <span>Terpilih: <span id="count" class="text-blue-600 dark:text-blue-400">0</span> / <span id="max">0</span></span>
                     <span id="warn" class="text-red-500 hidden">Penuh!</span>
@@ -103,17 +103,18 @@
             </div>
             
             <!-- Main Action Buttons -->
-            <div class="flex gap-2 border-t dark:border-gray-700 md:border-t-0 pt-2 md:pt-0 flex-shrink-0">
-                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 rounded-lg"><i class="fas fa-trash"></i></button>
-                <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+            <div class="flex gap-2 pt-1">
+                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 py-2 rounded-lg"><i class="fas fa-trash"></i></button>
+                <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fas fa-paper-plane"></i> Kirim
                 </button>
             </div>
         </div>
 
         <!-- MAXIMIZED CONTENT (Expanded View) -->
-        <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black p-4 w-full">
+        <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black p-4 w-full border-t dark:border-gray-800">
             <h3 class="text-lg font-bold text-gray-700 dark:text-gray-300 mb-4 px-2">Review Pilihan Foto</h3>
+            <p class="text-xs text-gray-500 px-2 mb-2">Tekan tahan untuk memperbesar.</p>
             <!-- Grid Maximize (Fixed Layout) -->
             <div id="maximizedGrid" class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 content-start pb-20">
                 <!-- Foto akan diinject disini -->
@@ -157,17 +158,14 @@
     <script>
         // --- CONFIG ---
         const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; // Ganti API Key
-        // Ganti dengan URL Google Script Anda
         const CONST_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPkgt5qVEPLEBeba7nPoxFL8TPkRpoCIG5Z_tCwAH78hQXJrJrXYydNass915lqNOn/exec";
 
         // State Global
         let state = { 
             id: '', name: '', limit: 0, wa: '', 
             tabs: [], activeTabId: null, selected: new Set(), allPhotosMap: new Map(), sortAsc: true,
-            // Preview State
             currentPreviewIndex: 0,
-            currentPreviewList: [], // List foto yang sedang di-preview (satu folder)
-            // Footer Swipe State
+            currentPreviewList: [], 
             isFooterExpanded: false
         };
 
@@ -183,8 +181,8 @@
             document.getElementById('watermarkText').innerText = state.name.toUpperCase();
             
             loadDraft(); updateUI();
-            initFooterSwipe(); // Aktifkan fitur swipe footer
-            initPreviewSwipe(); // Aktifkan fitur swipe preview
+            initFooterSwipe(); 
+            initPreviewSwipe(); 
             
             await initContent(state.id);
         };
@@ -260,16 +258,13 @@
             
             const sorted = [...photos].sort((a,b) => state.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
             
-            // Simpan list ini untuk navigasi preview nanti
-            state.currentPreviewList = sorted; 
-
             sorted.forEach((p, index) => {
                 const sel = state.selected.has(p.id);
                 const el = document.createElement('div');
                 el.className = `relative aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden cursor-pointer select-none rounded-lg ${sel?'ring-4 ring-green-500':''}`;
                 
-                // Event Handling
-                setupInteraction(el, p, index);
+                // Gunakan mode 'grid' untuk preview dari daftar utama
+                setupInteraction(el, p, index, 'grid', sorted);
 
                 el.innerHTML = `<img src="${p.url}" class="w-full h-full object-cover pointer-events-none transition duration-300 ${sel?'opacity-40':''}" loading="lazy">${sel?'<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fas fa-check text-3xl text-green-600 bg-white rounded-full p-1 shadow"></i></div>':''}<div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>`;
                 g.appendChild(el);
@@ -277,9 +272,16 @@
             g.classList.remove('hidden');
         }
 
-        function setupInteraction(el, photo, index) {
+        // --- INTERACTION HANDLER ---
+        function setupInteraction(el, photo, index, contextMode, photoList) {
             let timer;
-            const start = () => { timer = setTimeout(() => openPreview(index), 400); }; // 400ms long press
+            const start = () => { 
+                timer = setTimeout(() => {
+                    // Set daftar preview sesuai konteks (Grid Utama atau Daftar Terpilih)
+                    state.currentPreviewList = photoList;
+                    openPreview(index);
+                }, 400); 
+            }; 
             const stop = () => clearTimeout(timer);
             
             el.addEventListener('touchstart', start, {passive:true});
@@ -292,7 +294,7 @@
             el.oncontextmenu = (e) => { e.preventDefault(); return false; };
         }
 
-        // --- PREVIEW SYSTEM (NEW) ---
+        // --- PREVIEW SYSTEM ---
         function openPreview(index) {
             state.currentPreviewIndex = index;
             const modal = document.getElementById('previewModal');
@@ -308,7 +310,6 @@
             document.getElementById('previewImg').src = photo.previewUrl;
             document.getElementById('previewName').innerText = `${state.currentPreviewIndex + 1}/${state.currentPreviewList.length} - ${photo.name}`;
             
-            // Update Select Button
             const btn = document.getElementById('previewSelectBtn');
             if(state.selected.has(photo.id)) {
                 btn.className = "w-full max-w-md bg-green-600 border border-green-400 text-white py-4 rounded-full font-bold text-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-3";
@@ -336,10 +337,9 @@
         function toggleFromPreview() {
             const photo = state.currentPreviewList[state.currentPreviewIndex];
             toggle(photo.id);
-            updatePreviewUI(); // Refresh tombol
+            updatePreviewUI(); 
         }
 
-        // Swipe Logic untuk Preview
         function initPreviewSwipe() {
             const el = document.getElementById('previewContainer');
             let startX = 0;
@@ -357,7 +357,6 @@
             
             saveDraft();
             
-            // Refresh Grid & Footer
             if (state.activeTabId) {
                 const currentTab = state.tabs.find(t => t.id === state.activeTabId);
                 if (currentTab && currentTab.photos) {
@@ -367,59 +366,51 @@
             renderFooter();
             updateUI();
             
-            // Refresh Maximize Grid kalau lagi kebuka
             if(state.isFooterExpanded) renderMaximizedGrid();
         }
 
-        // --- FOOTER & MAXIMIZE (SWIPE LOGIC) ---
+        // --- FOOTER LOGIC ---
         function initFooterSwipe() {
             const handle = document.getElementById('footerHandle');
             const footer = document.getElementById('footer');
-            const chevron = document.getElementById('chevronIcon');
             let startY = 0; let currentY = 0;
 
-            // Handle Click
-            handle.onclick = () => {
-                state.isFooterExpanded ? collapseFooter() : expandFooter();
-            };
+            handle.onclick = () => { state.isFooterExpanded ? collapseFooter() : expandFooter(); };
 
-            // Handle Swipe
             handle.addEventListener('touchstart', (e) => {
                 startY = e.touches[0].clientY;
-                footer.classList.add('dragging'); // Matikan transisi saat drag
+                footer.classList.add('dragging');
             }, {passive: false});
 
             handle.addEventListener('touchmove', (e) => {
-                e.preventDefault(); // Stop scroll browser
+                e.preventDefault(); 
                 currentY = e.touches[0].clientY;
                 const delta = currentY - startY;
 
-                // Logika drag: Jangan biarkan drag terlalu jauh ke bawah/atas
+                // Hitung offset berdasarkan state saat ini
+                // 140px adalah tinggi visible panel bawah (collapsed)
                 if(!state.isFooterExpanded && delta < 0) {
-                    // Pulling UP
-                    footer.style.transform = `translateY(calc(100% - 80px + ${delta}px))`;
+                    footer.style.transform = `translateY(calc(100% - 140px + ${delta}px))`;
                 } else if (state.isFooterExpanded && delta > 0) {
-                    // Pulling DOWN
                     footer.style.transform = `translateY(${delta}px)`;
                 }
             }, {passive: false});
 
             handle.addEventListener('touchend', (e) => {
                 footer.classList.remove('dragging');
-                footer.style.transform = ''; // Reset inline style, let class handle it
+                footer.style.transform = '';
                 const delta = currentY - startY;
-
-                // Threshold 50px untuk trigger
                 if(!state.isFooterExpanded && delta < -50) expandFooter();
                 else if(state.isFooterExpanded && delta > 50) collapseFooter();
-                else state.isFooterExpanded ? expandFooter() : collapseFooter(); // Snap back
+                else state.isFooterExpanded ? expandFooter() : collapseFooter();
             });
         }
 
         function expandFooter() {
             const footer = document.getElementById('footer');
             const chevron = document.getElementById('chevronIcon');
-            footer.classList.remove('translate-y-[calc(100%-80px)]');
+            // Menampilkan penuh
+            footer.classList.remove('translate-y-[calc(100%-140px)]');
             footer.classList.add('translate-y-0');
             chevron.className = "fas fa-chevron-down absolute right-4 top-3 text-gray-400 text-sm";
             state.isFooterExpanded = true;
@@ -429,24 +420,20 @@
         function collapseFooter() {
             const footer = document.getElementById('footer');
             const chevron = document.getElementById('chevronIcon');
+            // Menyembunyikan sebagian besar (sisa 140px)
             footer.classList.remove('translate-y-0');
-            footer.classList.add('translate-y-[calc(100%-80px)]');
+            footer.classList.add('translate-y-[calc(100%-140px)]');
             chevron.className = "fas fa-chevron-up absolute right-4 top-3 text-gray-400 text-sm";
             state.isFooterExpanded = false;
         }
 
-        // Render Panel Bawah (Thumbnail Strip)
         function renderFooter() {
             const t = document.getElementById('thumbs'); t.innerHTML = '';
             
-            // Tampilkan foto
             state.selected.forEach(id => {
                 const p = state.allPhotosMap.get(id); if(!p) return;
-                
-                // Container relative untuk icon hapus
                 const div = document.createElement('div');
                 div.className = "relative flex-shrink-0 w-12 h-12";
-                
                 div.innerHTML = `
                     <img src="${p.url}" class="w-full h-full rounded object-cover border border-gray-300 dark:border-gray-600 cursor-pointer" onclick="toggle('${id}')">
                     <button onclick="event.stopPropagation(); toggle('${id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm z-10 border border-white dark:border-darkcard">
@@ -457,18 +444,24 @@
             });
         }
 
-        // Render Panel Atas (Maximized Grid)
         function renderMaximizedGrid() {
             const g = document.getElementById('maximizedGrid'); g.innerHTML = '';
             
-            state.selected.forEach(id => {
-                const p = state.allPhotosMap.get(id); if(!p) return;
+            // Konversi Set ke Array untuk navigasi
+            const selectedPhotos = Array.from(state.selected).map(id => state.allPhotosMap.get(id)).filter(p => p);
+
+            selectedPhotos.forEach((p, index) => {
                 const d = document.createElement('div');
-                d.className = "relative aspect-square rounded-lg overflow-hidden group";
+                d.className = "relative aspect-square rounded-lg overflow-hidden group bg-gray-200 dark:bg-gray-800 cursor-pointer";
+                
+                // Tambahkan event interaction (Long Press) untuk grid Maximize
+                // Gunakan mode 'selected' untuk konteks preview
+                setupInteraction(d, p, index, 'selected', selectedPhotos);
+
                 d.innerHTML = `
                     <img src="${p.url}" class="w-full h-full object-cover">
-                    <!-- Tombol Hapus X Merah -->
-                    <button onclick="toggle('${p.id}')" class="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md z-10 border-2 border-white">
+                    <!-- Tombol Hapus X Merah (tanpa long press trigger) -->
+                    <button onclick="event.stopPropagation(); toggle('${p.id}')" class="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md z-10 border-2 border-white">
                         <i class="fas fa-times"></i>
                     </button>
                     <div class="absolute bottom-0 w-full bg-black/60 text-white text-[10px] p-1 truncate text-center">${p.name}</div>
@@ -514,7 +507,7 @@
         function reset() { 
             if(confirm('Hapus semua pilihan?')) { 
                 state.selected.clear(); 
-                saveDraft(); // Update draft jadi kosong
+                saveDraft();
                 renderFooter(); updateUI(); 
                 if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
                 
