@@ -6,34 +6,51 @@
     <title>Galeri Seleksi Foto</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <!-- Config Tailwind Dark Mode -->
     <script>
-        tailwind.config = { darkMode: 'class', theme: { extend: { colors: { darkbg: '#1a1a1a', darkcard: '#2d2d2d', } } } }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#121212',
+                        darkcard: '#1e1e1e',
+                    }
+                }
+            }
+        }
     </script>
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
+        body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; overscroll-behavior-y: none; }
+        
+        /* Tab Styles */
         .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
         .dark .tab-active { border-bottom: 2px solid #60a5fa; color: #60a5fa; }
         .tab-inactive { color: #6b7280; }
         .dark .tab-inactive { color: #9ca3af; }
+
         /* Watermark */
         .watermark-text {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 3rem; font-weight: 900; color: rgba(255, 255, 255, 0.3);
+            font-size: 3rem; font-weight: 900; color: rgba(255, 255, 255, 0.2);
             pointer-events: none; white-space: nowrap; z-index: 20; text-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
+
+        /* Smooth Slide Transition for Maximize Panel */
+        .slide-panel { transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); }
+        .slide-panel.dragging { transition: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-24">
+<body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-24 overflow-x-hidden">
 
-    <!-- Header -->
+    <!-- HEADER -->
     <div class="bg-white dark:bg-darkcard shadow sticky top-0 z-40 transition-colors duration-300">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center border-b border-gray-100 dark:border-gray-700">
             <div class="overflow-hidden flex-1 mr-2">
                 <h1 class="font-bold text-gray-900 dark:text-white truncate text-sm md:text-base" id="title">Memuat...</h1>
-                <p class="text-[10px] text-gray-500 dark:text-gray-400">Tahan foto untuk Preview</p>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400">Tekan tahan foto untuk Zoom</p>
             </div>
+            
             <div class="flex items-center gap-3">
                 <div class="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold border border-blue-100 dark:border-blue-800 whitespace-nowrap">
                     Sisa: <span id="quotaLeft">0</span>
@@ -42,6 +59,7 @@
                 <button onclick="toggleTheme()" class="text-gray-500 dark:text-yellow-400 hover:text-blue-600 p-1"><i id="themeIcon" class="fas fa-moon text-lg"></i></button>
             </div>
         </div>
+
         <div class="max-w-6xl mx-auto">
             <div id="tabsContainer" class="flex overflow-x-auto scrollbar-hide px-2">
                 <div class="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 whitespace-nowrap">Loading folders...</div>
@@ -49,7 +67,7 @@
         </div>
     </div>
 
-    <!-- Main -->
+    <!-- MAIN GRID -->
     <main class="max-w-6xl mx-auto px-2 py-4 min-h-screen">
         <div id="loader" class="text-center py-20">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
@@ -62,47 +80,71 @@
         <div id="grid" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 md:gap-3 hidden"></div>
     </main>
 
-    <!-- Footer -->
-    <div id="footer" class="fixed bottom-0 left-0 w-full bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-full transition-transform duration-300 shadow-[0_-5px_15px_rgba(0,0,0,0.2)]">
-        <div onclick="toggleMaximize()" class="w-full flex justify-center py-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700">
-            <div class="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-            <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"></i>
+    <!-- FOOTER PANEL (Swipeable) -->
+    <!-- translate-y-full artinya tersembunyi di bawah -->
+    <div id="footer" class="fixed bottom-0 left-0 w-full h-[85vh] bg-white dark:bg-darkcard border-t dark:border-gray-700 z-50 transform translate-y-[calc(100%-80px)] slide-panel shadow-[0_-5px_20px_rgba(0,0,0,0.3)] flex flex-col rounded-t-2xl">
+        
+        <!-- Handle Bar (Area Geser) -->
+        <div id="footerHandle" class="w-full flex justify-center py-3 cursor-grab hover:bg-gray-50 dark:hover:bg-gray-700 border-b dark:border-gray-700 flex-shrink-0 touch-none">
+            <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+            <i id="chevronIcon" class="fas fa-chevron-up absolute right-4 top-3 text-gray-400 text-sm"></i>
         </div>
-        <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2">
+
+        <!-- Footer Content (Collapsed View) -->
+        <div class="max-w-6xl mx-auto p-2 flex flex-col md:flex-row gap-2 w-full bg-white dark:bg-darkcard">
+            <!-- Thumbs Row -->
             <div class="flex-1 overflow-hidden">
                 <div class="flex justify-between px-1 mb-1 text-[10px] text-gray-500 dark:text-gray-400 uppercase font-bold">
                     <span>Terpilih: <span id="count" class="text-blue-600 dark:text-blue-400">0</span> / <span id="max">0</span></span>
                     <span id="warn" class="text-red-500 hidden">Penuh!</span>
                 </div>
-                <div id="thumbs" class="flex gap-2 overflow-x-auto h-14 items-center scrollbar-hide px-1 transition-all"></div>
+                <!-- Thumbnail Strip -->
+                <div id="thumbs" class="flex gap-2 overflow-x-auto h-16 items-center scrollbar-hide px-1 transition-all"></div>
             </div>
-            <div class="flex gap-2 border-t dark:border-gray-700 md:border-t-0 pt-2 md:pt-0">
-                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 rounded-lg"><i class="fas fa-trash"></i></button>
+            
+            <!-- Main Action Buttons -->
+            <div class="flex gap-2 border-t dark:border-gray-700 md:border-t-0 pt-2 md:pt-0 flex-shrink-0">
+                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-4 rounded-lg"><i class="fas fa-trash"></i></button>
                 <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
                     <i class="fas fa-paper-plane"></i> Kirim
                 </button>
             </div>
         </div>
-    </div>
 
-    <!-- Maximized Panel -->
-    <div id="maximizedPanel" class="fixed inset-0 bg-white dark:bg-darkbg z-[45] hidden flex flex-col transform transition-transform duration-300 translate-y-full pt-16">
-        <div class="px-4 py-2 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-darkcard">
-            <h2 class="font-bold text-gray-700 dark:text-gray-200">Review Pilihan</h2>
-            <button onclick="toggleMaximize()" class="text-gray-500 dark:text-gray-400 p-2"><i class="fas fa-times text-xl"></i></button>
+        <!-- MAXIMIZED CONTENT (Expanded View) -->
+        <div class="flex-1 overflow-y-auto bg-gray-50 dark:bg-black p-4 w-full">
+            <h3 class="text-lg font-bold text-gray-700 dark:text-gray-300 mb-4 px-2">Review Pilihan Foto</h3>
+            <!-- Grid Maximize (Fixed Layout) -->
+            <div id="maximizedGrid" class="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 content-start pb-20">
+                <!-- Foto akan diinject disini -->
+            </div>
         </div>
-        <div id="maximizedGrid" class="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 content-start"></div>
-        <div class="h-32"></div>
     </div>
 
-    <!-- Preview Modal -->
-    <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-95 z-[60] hidden flex items-center justify-center p-2" onclick="closePreview()">
-        <div class="relative max-w-full max-h-full">
-            <img id="previewImg" src="" class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl">
+    <!-- PREVIEW MODAL (Super Lightbox) -->
+    <div id="previewModal" class="fixed inset-0 bg-black z-[60] hidden flex flex-col justify-between">
+        <!-- Top Bar -->
+        <div class="flex justify-between items-center p-4 z-20">
+            <div class="text-white text-sm font-mono truncate max-w-[200px]" id="previewName">filename.jpg</div>
+            <button onclick="closePreview()" class="text-white text-3xl p-2"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Main Image Area -->
+        <div class="relative flex-1 flex items-center justify-center overflow-hidden" id="previewContainer">
+            <img id="previewImg" src="" class="max-w-full max-h-full object-contain transition-transform duration-200">
             <div class="watermark-text" id="watermarkText">PREVIEW</div>
+            
+            <!-- Navigation Arrows -->
+            <button onclick="prevPreview()" class="absolute left-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-4 text-3xl z-30"><i class="fas fa-chevron-left"></i></button>
+            <button onclick="nextPreview()" class="absolute right-2 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-4 text-3xl z-30"><i class="fas fa-chevron-right"></i></button>
         </div>
-        <button class="absolute top-4 right-4 text-white text-2xl p-2"><i class="fas fa-times"></i></button>
-        <div class="absolute bottom-10 text-white text-center text-sm bg-black bg-opacity-50 px-3 py-1 rounded-full" id="previewName">Nama File</div>
+
+        <!-- Bottom Action Bar -->
+        <div class="bg-gradient-to-t from-black via-black/80 to-transparent p-6 pb-8 z-20 flex justify-center">
+            <button id="previewSelectBtn" onclick="toggleFromPreview()" class="w-full max-w-md bg-gray-800 border border-gray-500 text-white py-4 rounded-full font-bold text-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-3">
+                <i class="far fa-circle"></i> PILIH FOTO INI
+            </button>
+        </div>
     </div>
 
     <!-- Sending Overlay -->
@@ -113,34 +155,41 @@
     </div>
 
     <script>
-        // --- HARDCODED CONFIG ---
-        const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; // Ganti dengan API Key Anda
+        // --- CONFIG ---
+        const API_KEY = "AIzaSyCLT22kOThpBwxkzNQt3mEFQpoKcLr9zMk"; // Ganti API Key
+        // Ganti dengan URL Google Script Anda
         const CONST_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwPkgt5qVEPLEBeba7nPoxFL8TPkRpoCIG5Z_tCwAH78hQXJrJrXYydNass915lqNOn/exec";
 
-        // State
+        // State Global
         let state = { 
             id: '', name: '', limit: 0, wa: '', 
-            tabs: [], activeTabId: null, selected: new Set(), allPhotosMap: new Map(), sortAsc: true 
+            tabs: [], activeTabId: null, selected: new Set(), allPhotosMap: new Map(), sortAsc: true,
+            // Preview State
+            currentPreviewIndex: 0,
+            currentPreviewList: [], // List foto yang sedang di-preview (satu folder)
+            // Footer Swipe State
+            isFooterExpanded: false
         };
 
+        // --- INIT ---
         window.onload = async () => {
             if(localStorage.getItem('theme') === 'dark') { document.documentElement.classList.add('dark'); document.getElementById('themeIcon').classList.replace('fa-moon', 'fa-sun'); }
             
             const p = new URLSearchParams(window.location.search);
-            state.name = p.get('p');
-            state.limit = parseInt(p.get('q'));
-            state.id = p.get('f');
-            state.wa = p.get('w'); // WA Number dari URL
-
+            state.name = p.get('p'); state.limit = parseInt(p.get('q')); state.id = p.get('f'); state.wa = p.get('w');
             if(!state.name || !state.id) return fail("Link rusak.");
             
             document.getElementById('title').innerText = state.name;
             document.getElementById('watermarkText').innerText = state.name.toUpperCase();
+            
             loadDraft(); updateUI();
+            initFooterSwipe(); // Aktifkan fitur swipe footer
+            initPreviewSwipe(); // Aktifkan fitur swipe preview
+            
             await initContent(state.id);
         };
 
-        // --- CORE FUNCTIONS ---
+        // --- CORE FETCH ---
         async function initContent(rootId) {
             try {
                 const data = await fetchDriveFolder(rootId);
@@ -174,6 +223,7 @@
             };
         }
 
+        // --- TABS & GRID ---
         function renderTabs() {
             const c = document.getElementById('tabsContainer'); c.innerHTML = '';
             state.tabs.forEach(t => {
@@ -190,6 +240,7 @@
                 if(t.id===id) { el.classList.remove('tab-inactive'); el.classList.add('tab-active'); el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
                 else { el.classList.add('tab-inactive'); el.classList.remove('tab-active'); }
             });
+
             const t = state.tabs.find(x => x.id === id);
             if(t.photos === null) {
                 document.getElementById('grid').innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">Memuat...</div>';
@@ -205,74 +256,243 @@
 
         function renderGrid(photos) {
             const g = document.getElementById('grid'); g.innerHTML = '';
-            if(photos.length===0) { g.innerHTML='<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder kosong.</div>'; return; }
+            if(!photos || photos.length===0) { g.innerHTML='<div class="col-span-full text-center py-10 text-gray-400 text-sm">Folder kosong.</div>'; return; }
+            
             const sorted = [...photos].sort((a,b) => state.sortAsc ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
-            sorted.forEach(p => {
+            
+            // Simpan list ini untuk navigasi preview nanti
+            state.currentPreviewList = sorted; 
+
+            sorted.forEach((p, index) => {
                 const sel = state.selected.has(p.id);
                 const el = document.createElement('div');
-                el.className = `relative aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden cursor-pointer select-none ${sel?'ring-4 ring-green-500':''}`;
-                addEvents(el, p);
+                el.className = `relative aspect-square bg-gray-200 dark:bg-gray-700 overflow-hidden cursor-pointer select-none rounded-lg ${sel?'ring-4 ring-green-500':''}`;
+                
+                // Event Handling
+                setupInteraction(el, p, index);
+
                 el.innerHTML = `<img src="${p.url}" class="w-full h-full object-cover pointer-events-none transition duration-300 ${sel?'opacity-40':''}" loading="lazy">${sel?'<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><i class="fas fa-check text-3xl text-green-600 bg-white rounded-full p-1 shadow"></i></div>':''}<div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>`;
                 g.appendChild(el);
             });
             g.classList.remove('hidden');
         }
 
-        function addEvents(el, p) {
+        function setupInteraction(el, photo, index) {
             let timer;
-            const start = () => { timer = setTimeout(() => openPreview(p), 500); };
+            const start = () => { timer = setTimeout(() => openPreview(index), 400); }; // 400ms long press
             const stop = () => clearTimeout(timer);
-            el.addEventListener('touchstart', start, {passive:true}); el.addEventListener('touchend', stop); el.addEventListener('touchmove', stop);
-            el.addEventListener('mousedown', (e)=>{if(e.button===0)start()}); el.addEventListener('mouseup', stop); el.addEventListener('mouseleave', stop);
-            el.onclick = () => toggle(p.id); el.oncontextmenu = (e)=>{e.preventDefault();return false;};
+            
+            el.addEventListener('touchstart', start, {passive:true});
+            el.addEventListener('touchend', stop);
+            el.addEventListener('touchmove', stop);
+            el.addEventListener('mousedown', (e)=>{if(e.button===0)start()});
+            el.addEventListener('mouseup', stop);
+            
+            el.onclick = () => toggle(photo.id);
+            el.oncontextmenu = (e) => { e.preventDefault(); return false; };
         }
 
-        function toggle(id) {
-            if(state.selected.has(id)) state.selected.delete(id);
-            else { if(state.selected.size >= state.limit){ alert("Kuota Penuh!"); return; } state.selected.add(id); }
-            saveDraft();
-            renderGrid(state.tabs.find(t=>t.id===state.activeTabId).photos); renderFooter(); updateUI();
-            if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
+        // --- PREVIEW SYSTEM (NEW) ---
+        function openPreview(index) {
+            state.currentPreviewIndex = index;
+            const modal = document.getElementById('previewModal');
+            modal.classList.remove('hidden');
+            updatePreviewUI();
+            if(navigator.vibrate) navigator.vibrate(50);
         }
 
-        function renderFooter() {
-            const f = document.getElementById('footer'), t = document.getElementById('thumbs'); t.innerHTML = '';
-            if(state.selected.size>0) f.classList.remove('translate-y-full'); else { f.classList.add('translate-y-full'); closeMaximize(); }
-            state.selected.forEach(id => {
-                const p = state.allPhotosMap.get(id); if(!p) return;
-                const i = document.createElement('img'); i.src = p.url;
-                i.className = "h-12 w-12 rounded object-cover border border-gray-300 dark:border-gray-600 cursor-pointer flex-shrink-0";
-                i.onclick = () => toggle(id); t.appendChild(i);
+        function updatePreviewUI() {
+            const photo = state.currentPreviewList[state.currentPreviewIndex];
+            if(!photo) return;
+
+            document.getElementById('previewImg').src = photo.previewUrl;
+            document.getElementById('previewName').innerText = `${state.currentPreviewIndex + 1}/${state.currentPreviewList.length} - ${photo.name}`;
+            
+            // Update Select Button
+            const btn = document.getElementById('previewSelectBtn');
+            if(state.selected.has(photo.id)) {
+                btn.className = "w-full max-w-md bg-green-600 border border-green-400 text-white py-4 rounded-full font-bold text-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-3";
+                btn.innerHTML = `<i class="fas fa-check-circle"></i> SUDAH DIPILIH`;
+            } else {
+                btn.className = "w-full max-w-md bg-gray-800 border border-gray-500 text-white py-4 rounded-full font-bold text-lg shadow-lg active:scale-95 transition flex items-center justify-center gap-3";
+                btn.innerHTML = `<i class="far fa-circle"></i> PILIH FOTO INI`;
+            }
+        }
+
+        function nextPreview() {
+            if(state.currentPreviewIndex < state.currentPreviewList.length - 1) {
+                state.currentPreviewIndex++;
+                updatePreviewUI();
+            }
+        }
+        function prevPreview() {
+            if(state.currentPreviewIndex > 0) {
+                state.currentPreviewIndex--;
+                updatePreviewUI();
+            }
+        }
+        function closePreview() { document.getElementById('previewModal').classList.add('hidden'); }
+        
+        function toggleFromPreview() {
+            const photo = state.currentPreviewList[state.currentPreviewIndex];
+            toggle(photo.id);
+            updatePreviewUI(); // Refresh tombol
+        }
+
+        // Swipe Logic untuk Preview
+        function initPreviewSwipe() {
+            const el = document.getElementById('previewContainer');
+            let startX = 0;
+            el.addEventListener('touchstart', e => startX = e.touches[0].clientY < 50 ? 0 : e.touches[0].clientX, {passive:true});
+            el.addEventListener('touchend', e => {
+                const diff = startX - e.changedTouches[0].clientX;
+                if(Math.abs(diff) > 50) diff > 0 ? nextPreview() : prevPreview();
             });
         }
 
-        // --- UTILS ---
-        function openPreview(p) { document.getElementById('previewImg').src=p.previewUrl; document.getElementById('previewName').innerText=p.name; document.getElementById('previewModal').classList.remove('hidden'); if(navigator.vibrate)navigator.vibrate(50); }
-        function closePreview() { document.getElementById('previewModal').classList.add('hidden'); }
-        function toggleSort() { state.sortAsc = !state.sortAsc; document.getElementById('sortIcon').className = state.sortAsc ? "fas fa-sort-alpha-down text-lg" : "fas fa-sort-alpha-up text-lg"; renderGrid(state.tabs.find(t=>t.id===state.activeTabId).photos); }
-        function toggleTheme() { const html=document.documentElement; const i=document.getElementById('themeIcon'); if(html.classList.contains('dark')){html.classList.remove('dark');localStorage.setItem('theme','light');i.classList.replace('fa-sun','fa-moon');}else{html.classList.add('dark');localStorage.setItem('theme','dark');i.classList.replace('fa-moon','fa-sun');} }
-        function updateUI() { const c=state.selected.size; document.getElementById('count').innerText=c; document.getElementById('max').innerText=state.limit; document.getElementById('quotaLeft').innerText=state.limit-c; document.getElementById('warn').style.display=c>=state.limit?'inline':'none'; }
-        
-        function toggleMaximize() { 
-            const p = document.getElementById('maximizedPanel'); const i = document.getElementById('chevronIcon');
-            if(p.classList.contains('hidden')) { p.classList.remove('hidden'); setTimeout(()=>p.classList.remove('translate-y-full'),10); i.className="fas fa-chevron-down absolute right-4 top-2 text-gray-400 text-sm"; renderMaximizedGrid(); }
-            else { closeMaximize(); }
+        // --- SELECTION Logic ---
+        function toggle(id) {
+            if(state.selected.has(id)) state.selected.delete(id);
+            else { if(state.selected.size >= state.limit){ alert("Kuota Penuh!"); return; } state.selected.add(id); }
+            
+            saveDraft();
+            
+            // Refresh Grid & Footer
+            if (state.activeTabId) {
+                const currentTab = state.tabs.find(t => t.id === state.activeTabId);
+                if (currentTab && currentTab.photos) {
+                    renderGrid(currentTab.photos);
+                }
+            }
+            renderFooter();
+            updateUI();
+            
+            // Refresh Maximize Grid kalau lagi kebuka
+            if(state.isFooterExpanded) renderMaximizedGrid();
         }
-        function closeMaximize() { const p = document.getElementById('maximizedPanel'); document.getElementById('chevronIcon').className="fas fa-chevron-up absolute right-4 top-2 text-gray-400 text-sm"; p.classList.add('translate-y-full'); setTimeout(()=>p.classList.add('hidden'),300); }
+
+        // --- FOOTER & MAXIMIZE (SWIPE LOGIC) ---
+        function initFooterSwipe() {
+            const handle = document.getElementById('footerHandle');
+            const footer = document.getElementById('footer');
+            const chevron = document.getElementById('chevronIcon');
+            let startY = 0; let currentY = 0;
+
+            // Handle Click
+            handle.onclick = () => {
+                state.isFooterExpanded ? collapseFooter() : expandFooter();
+            };
+
+            // Handle Swipe
+            handle.addEventListener('touchstart', (e) => {
+                startY = e.touches[0].clientY;
+                footer.classList.add('dragging'); // Matikan transisi saat drag
+            }, {passive: false});
+
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault(); // Stop scroll browser
+                currentY = e.touches[0].clientY;
+                const delta = currentY - startY;
+
+                // Logika drag: Jangan biarkan drag terlalu jauh ke bawah/atas
+                if(!state.isFooterExpanded && delta < 0) {
+                    // Pulling UP
+                    footer.style.transform = `translateY(calc(100% - 80px + ${delta}px))`;
+                } else if (state.isFooterExpanded && delta > 0) {
+                    // Pulling DOWN
+                    footer.style.transform = `translateY(${delta}px)`;
+                }
+            }, {passive: false});
+
+            handle.addEventListener('touchend', (e) => {
+                footer.classList.remove('dragging');
+                footer.style.transform = ''; // Reset inline style, let class handle it
+                const delta = currentY - startY;
+
+                // Threshold 50px untuk trigger
+                if(!state.isFooterExpanded && delta < -50) expandFooter();
+                else if(state.isFooterExpanded && delta > 50) collapseFooter();
+                else state.isFooterExpanded ? expandFooter() : collapseFooter(); // Snap back
+            });
+        }
+
+        function expandFooter() {
+            const footer = document.getElementById('footer');
+            const chevron = document.getElementById('chevronIcon');
+            footer.classList.remove('translate-y-[calc(100%-80px)]');
+            footer.classList.add('translate-y-0');
+            chevron.className = "fas fa-chevron-down absolute right-4 top-3 text-gray-400 text-sm";
+            state.isFooterExpanded = true;
+            renderMaximizedGrid();
+        }
+
+        function collapseFooter() {
+            const footer = document.getElementById('footer');
+            const chevron = document.getElementById('chevronIcon');
+            footer.classList.remove('translate-y-0');
+            footer.classList.add('translate-y-[calc(100%-80px)]');
+            chevron.className = "fas fa-chevron-up absolute right-4 top-3 text-gray-400 text-sm";
+            state.isFooterExpanded = false;
+        }
+
+        // Render Panel Bawah (Thumbnail Strip)
+        function renderFooter() {
+            const t = document.getElementById('thumbs'); t.innerHTML = '';
+            
+            // Tampilkan foto
+            state.selected.forEach(id => {
+                const p = state.allPhotosMap.get(id); if(!p) return;
+                
+                // Container relative untuk icon hapus
+                const div = document.createElement('div');
+                div.className = "relative flex-shrink-0 w-12 h-12";
+                
+                div.innerHTML = `
+                    <img src="${p.url}" class="w-full h-full rounded object-cover border border-gray-300 dark:border-gray-600 cursor-pointer" onclick="toggle('${id}')">
+                    <button onclick="event.stopPropagation(); toggle('${id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm z-10 border border-white dark:border-darkcard">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                t.appendChild(div);
+            });
+        }
+
+        // Render Panel Atas (Maximized Grid)
         function renderMaximizedGrid() {
-            const g = document.getElementById('maximizedGrid'); g.innerHTML='';
-            state.selected.forEach(id=>{
-                const p = state.allPhotosMap.get(id); if(!p)return;
-                const d = document.createElement('div'); d.className="relative aspect-square rounded overflow-hidden";
-                d.innerHTML=`<img src="${p.url}" class="w-full h-full object-cover"><button onclick="toggle('${p.id}')" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs shadow"><i class="fas fa-times"></i></button><div class="absolute bottom-0 w-full bg-black/50 text-white text-[9px] p-1 truncate text-center">${p.name}</div>`;
+            const g = document.getElementById('maximizedGrid'); g.innerHTML = '';
+            
+            state.selected.forEach(id => {
+                const p = state.allPhotosMap.get(id); if(!p) return;
+                const d = document.createElement('div');
+                d.className = "relative aspect-square rounded-lg overflow-hidden group";
+                d.innerHTML = `
+                    <img src="${p.url}" class="w-full h-full object-cover">
+                    <!-- Tombol Hapus X Merah -->
+                    <button onclick="toggle('${p.id}')" class="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs shadow-md z-10 border-2 border-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="absolute bottom-0 w-full bg-black/60 text-white text-[10px] p-1 truncate text-center">${p.name}</div>
+                `;
                 g.appendChild(d);
             });
         }
 
+        // --- UTILS ---
+        function toggleSort() { 
+            if(!state.activeTabId) return;
+            const tab = state.tabs.find(t=>t.id===state.activeTabId);
+            if (tab && tab.photos) {
+                state.sortAsc = !state.sortAsc; 
+                document.getElementById('sortIcon').className = state.sortAsc ? "fas fa-sort-alpha-down text-lg" : "fas fa-sort-alpha-up text-lg"; 
+                renderGrid(tab.photos); 
+            }
+        }
+        function toggleTheme() { const h=document.documentElement; if(h.classList.contains('dark')){h.classList.remove('dark');localStorage.setItem('theme','light');}else{h.classList.add('dark');localStorage.setItem('theme','dark');} }
+        function updateUI() { const c=state.selected.size; document.getElementById('count').innerText=c; document.getElementById('max').innerText=state.limit; document.getElementById('quotaLeft').innerText=state.limit-c; document.getElementById('warn').style.display=c>=state.limit?'inline':'none'; }
+        
         function saveDraft() { localStorage.setItem('draft_'+state.name, JSON.stringify({t:Date.now(), ids:Array.from(state.selected), cache:Array.from(state.selected).map(id=>state.allPhotosMap.get(id)).filter(p=>p)})); }
         function loadDraft() { const s=localStorage.getItem('draft_'+state.name); if(s){ try{const d=JSON.parse(s); if(Date.now()-d.t<604800000){ d.ids.forEach(i=>state.selected.add(i)); if(d.cache)d.cache.forEach(p=>state.allPhotosMap.set(p.id,p)); renderFooter(); }}catch(e){} } }
 
-        // --- SENDING ---
         async function processOrder() {
             if(state.selected.size===0) return; if(!confirm(`Kirim ${state.selected.size} foto?`)) return;
             document.getElementById('sendingOverlay').classList.remove('hidden');
@@ -280,21 +500,32 @@
             try {
                 await fetch(CONST_SCRIPT_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify({projectName:state.name, files:files}) });
                 await new Promise(r=>setTimeout(r,1500));
-                document.getElementById('sendingOverlay').classList.add('hidden');
-                
                 const waText = `*${state.name}*\nTotal: ${files.length} Foto\n\nFilename:\n` + files.join('\n');
                 window.open(`https://wa.me/${state.wa}?text=${encodeURIComponent(waText)}`, '_blank');
-                
-                localStorage.removeItem('draft_'+state.name); state.selected.clear(); window.location.reload();
+                localStorage.removeItem('draft_'+state.name); window.location.reload();
             } catch(e) {
-                document.getElementById('sendingOverlay').classList.add('hidden');
+                alert("Mengalihkan ke WhatsApp...");
                 const waText = `*${state.name}*\nTotal: ${files.length} Foto\n\nFilename:\n` + files.join('\n');
                 window.open(`https://wa.me/${state.wa}?text=${encodeURIComponent(waText)}`, '_blank');
             }
         }
         function fail(m) { document.getElementById('error').classList.remove('hidden'); document.getElementById('errMsg').innerText=m; document.getElementById('loader').classList.add('hidden'); }
+        
+        function reset() { 
+            if(confirm('Hapus semua pilihan?')) { 
+                state.selected.clear(); 
+                saveDraft(); // Update draft jadi kosong
+                renderFooter(); updateUI(); 
+                if(!document.getElementById('maximizedPanel').classList.contains('hidden')) renderMaximizedGrid();
+                
+                if (state.activeTabId) {
+                    const currentTab = state.tabs.find(t => t.id === state.activeTabId);
+                    if (currentTab && currentTab.photos) {
+                        renderGrid(currentTab.photos);
+                    }
+                }
+            } 
+        }
     </script>
 </body>
 </html>
-
-
