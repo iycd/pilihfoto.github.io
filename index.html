@@ -21,8 +21,7 @@
     </script>
     <style>
         .scrollbar-hide::-webkit-scrollbar { display: none; }
-        /* Menghapus user-select none global agar scroll lebih lancar, apply manual ke elemen perlu saja */
-        body { -webkit-tap-highlight-color: transparent; }
+        body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-touch-callout: none; }
         
         /* Tab Styles */
         .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
@@ -40,11 +39,6 @@
         /* Smooth Slide Transition for Maximize Panel */
         .slide-panel { transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1); }
         .slide-panel.dragging { transition: none; }
-
-        /* Scroll Buttons Fade Effect */
-        .scroll-btn-wrapper {
-            position: absolute; top: 0; bottom: 0; display: flex; align-items: center; z-index: 10;
-        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 dark:bg-darkbg dark:text-gray-100 transition-colors duration-300 pb-44 overflow-x-hidden">
@@ -102,8 +96,8 @@
         </div>
 
         <!-- Footer Content (Collapsed View) -->
-        <!-- Menggunakan flex-row untuk menaruh tombol di samping kanan -->
-        <div class="max-w-6xl mx-auto p-3 flex flex-row gap-3 w-full bg-white dark:bg-darkcard h-[180px]">
+        <!-- Menggunakan flex-row agar info thumbnail dan tombol berdampingan -->
+        <div class="max-w-6xl mx-auto p-3 flex flex-row gap-4 w-full bg-white dark:bg-darkcard h-[180px]">
             
             <!-- Left Side: Info & Thumbs (Expandable) -->
             <div class="flex-1 flex flex-col gap-1 overflow-hidden">
@@ -122,15 +116,18 @@
                 </div>
             </div>
             
-            <!-- Right Side: Main Action Buttons (Vertical Stack) -->
-            <div class="flex flex-col gap-2 w-28 flex-shrink-0 justify-center">
-                <button onclick="reset()" class="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-3 rounded-lg flex items-center justify-center gap-2 text-xs font-bold border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                    <i class="fas fa-trash"></i> Reset
-                </button>
-                <button onclick="processOrder()" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-2 py-2 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex flex-col items-center justify-center gap-1 text-center leading-tight">
-                    <i class="fas fa-paper-plane text-lg"></i>
-                    <span>KIRIM</span>
-                </button>
+            <!-- Right Side: Main Action Buttons (Horizontal & Bottom Aligned) -->
+            <!-- flex-col justify-end memastikan tombol menempel di bawah -->
+            <div class="flex flex-col justify-end flex-shrink-0 pb-2">
+                <div class="flex items-center gap-2">
+                    <button onclick="reset()" class="h-10 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 rounded-lg flex items-center justify-center gap-1 text-xs font-bold border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors" title="Hapus Semua">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    
+                    <button onclick="processOrder()" class="h-10 bg-green-600 hover:bg-green-700 text-white px-5 rounded-lg text-sm font-bold shadow-md active:scale-95 transition flex items-center justify-center gap-2 whitespace-nowrap">
+                        <i class="fas fa-paper-plane"></i> KIRIM
+                    </button>
+                </div>
             </div>
         </div>
 
